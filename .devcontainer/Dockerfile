@@ -19,5 +19,5 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 
 # Set up auto-source of workspace for ros user
 ARG WORKSPACE
-RUN rosdep update &&  && rosdep install --from-paths src --ignore-src -y --rosdistro=galactic 
+RUN rosdep update && rosdep install --from-paths src --ignore-src -y --rosdistro=galactic 
 RUN echo "if [ -f ${WORKSPACE}/install/setup.zsh ]; then source ${WORKSPACE}/install/setup.zsh; fi" >> /home/ros/.zshrc
