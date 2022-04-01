@@ -69,5 +69,6 @@
         ".vscode",
         ".vscode-insiders",
         ".devcontainer/devcontainer.json"
-    ]
+    ],
+    "ros.distro": "galactic"
 }

@@ -8,25 +8,27 @@
 	},
 	"remoteUser": "ros",
 	"runArgs": [
+		"--device=/dev/ttyUSB0",
+		"--privileged",
 		"--network=host",
 		"--cap-add=SYS_PTRACE",
 		"--security-opt=seccomp:unconfined",
 		"--security-opt=apparmor:unconfined",
+		"--volume=/dev:/dev",
 		"--volume=/tmp/.X11-unix:/tmp/.X11-unix"
 	],
 	"containerEnv": { "DISPLAY": "${localEnv:DISPLAY}" },
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"terminal.integrated.profiles.linux": {
-			"bash": {
-				"path": "bash"
+			"zsh": {
+				"path": "zsh"
 			},
 		},
-		"terminal.integrated.defaultProfile.linux": "bash"
+		"terminal.integrated.defaultProfile.linux": "zsh"
 	},
 	"extensions": [
 		"dotjoshjohnson.xml",
-		"zachflower.uncrustify",
 		"ms-azuretools.vscode-docker",
 		"ms-iot.vscode-ros",
 		"ms-python.python",
@@ -35,6 +37,7 @@
 		"smilerobotics.urdf",
 		"streetsidesoftware.code-spell-checker",
 		"twxs.cmake",
-		"yzhang.markdown-all-in-one"
+		"yzhang.markdown-all-in-one",
+		"augustocdias.tasks-shell-input"
 	]
 }
