@@ -238,6 +238,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#working-with-vscode-and-docker" class="md-nav__link">
+    Working with VSCode and docker.
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -300,6 +307,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#working-with-vscode-and-docker" class="md-nav__link">
+    Working with VSCode and docker.
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -350,6 +364,10 @@ Code was being tested on:
  - OAK-D camera on a x86 PC - ROS2 Galactic
  - OAK-D camera on an ARM based system - Nvidia Jetson, using ROS2 Galactic built from source</p>
 <p><img alt="Example" src="docs/example.gif" /></p>
+<h2 id="working-with-vscode-and-docker">Working with VSCode and docker.</h2>
+<p>When opening this repository directly in VSCode, you will have the option to develop inside a container. 
+After reopening, execute Code task <code>setup all</code> which will download all the repositories needed by this package.
+Then a build task will build <code>depthai_ros_driver</code> as well as <code>depthai-core</code> repository. For more on tasks, see <code>.vscode/tasks.json</code> file.</p>
 <h2 id="installation">Installation</h2>
 <p>To build the package you should download and install the latest <a href="https://github.com/luxonis/depthai-core.git">depthai_core library</a> and its dependencies.</p>
 <pre><code>sudo wget -qO- http://docs.luxonis.com/_static/install_dependencies.sh | bash
