@@ -280,7 +280,27 @@
             "label": "install dependencies",
             "detail": "Install all dependencies specified in the workspaces package.xml files.",
             "type": "shell",
-            "command": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y",
+            "command": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y --skip-keys depthai",
+            "problemMatcher": []
+        },
+        {
+            "label": "submodule update",
+            "detail": "Get Git submodules.",
+            "type": "shell",
+            "command": "git submodule update --init --recursive",
+            "problemMatcher": []
+        },
+        {
+            "label": "build depthai_core",
+            "detail": "Building the currently checked out version of depthai-core library.",
+            "type": "shell",
+            "command": "cmake -Hdepthai-core -Bdepthai-core/build -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local && sudo cmake --build depthai-core/build --target install",
+            "problemMatcher": []
+        },
+        {
+            "label": "setup all",
+            "detail": "Getting all the packages needed to start building.",
+            "dependsOn": ["install dependencies", "submodule update"],
             "problemMatcher": []
         }
     ],
