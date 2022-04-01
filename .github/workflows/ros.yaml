@@ -24,7 +24,6 @@ jobs:
           docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
           bash -c "
           git submodule update --init --recursive \
-          && vcs import --skip-existing < src/ros2.repos src \
           && apt-get update \
           && rosdep update \
           && rosdep install --from-paths src --ignore-src -y --rosdistro=galactic --skip-keys depthai \
