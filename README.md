@@ -9,6 +9,12 @@ Code was being tested on:
  - OAK-D camera on an ARM based system - Nvidia Jetson, using ROS2 Galactic built from source
 
 ![Example](docs/example.gif)
+
+## Working with VSCode and docker.
+When opening this repository directly in VSCode, you will have the option to develop inside a container. 
+After reopening, execute Code task `setup all` which will download all the repositories needed by this package.
+Then a build task will build `depthai_ros_driver` as well as `depthai-core` repository. For more on tasks, see `.vscode/tasks.json` file.
+
 ## Installation
 To build the package you should download and install the latest [depthai_core library](https://github.com/luxonis/depthai-core.git) and its dependencies.
 ```
