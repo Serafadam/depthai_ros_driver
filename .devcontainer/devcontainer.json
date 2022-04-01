@@ -24,6 +24,10 @@
 			"zsh": {
 				"path": "zsh"
 			},
+			"bash": {
+				"path": "bash"
+			}
+			
 		},
 		"terminal.integrated.defaultProfile.linux": "zsh"
 	},
