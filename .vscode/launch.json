@@ -31,6 +31,13 @@
           "ignoreFailures": true
         }
       ]
+    },
+    {
+      "name": "ROS: Launch MobilenetCamera",
+      "type": "ros",
+      "request": "launch",
+      "target": "/workspaces/depthai_ros_driver/src/depthai_ros_driver/launch/mobilenet_camera.launch.py",
+      "preLaunchTask": "build"
     }
   ],
   "inputs": [
