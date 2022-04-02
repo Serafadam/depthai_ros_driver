@@ -36,6 +36,21 @@ public:
   }
   virtual ~BaseCamera() {}
   virtual void on_configure() {}
+  std::unique_ptr<dai::Device> device_;
+  std::unique_ptr<dai::Pipeline> pipeline_;
+  void start_the_device()
+  {
+    bool cam_setup = false;
+    while (!cam_setup) {
+      try {
+        device_ = std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER);
+        cam_setup = true;
+      } catch (const std::runtime_error & e) {
+        RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
+      }
+    }
+    RCLCPP_INFO(this->get_logger(), "Camera connected!");
+  }
 
 private:
   virtual void timer_cb() {}

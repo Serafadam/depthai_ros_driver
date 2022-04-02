@@ -65,8 +65,6 @@ private:
   int width_, height_;
   double fps_;
   std::string camera_frame_;
-  std::unique_ptr<dai::Device> device_;
-  std::unique_ptr<dai::Pipeline> pipeline_;
 };
 
 }  // namespace depthai_ros_driver

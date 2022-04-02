@@ -57,7 +57,6 @@ private:
   image_transport::Publisher mono_right_pub_;
   image_transport::Publisher image_pub_;
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
-  std::unique_ptr<dai::Pipeline> pipeline_;
   void timer_cb() override;
   void declare_parameters() override;
   void setup_publishers() override;
@@ -74,7 +73,7 @@ private:
   std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_, depth_q_, video_q_,
     mono_left_q_, mono_right_q_;
 
-  std::vector<std::string> default_label_map_ = {
+  const std::vector<std::string> default_label_map_ = {
     "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
     "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
     "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
@@ -91,7 +90,6 @@ private:
   std::string camera_frame_;
   rclcpp::Time start_time_;
   std::atomic<bool> sync_nn{true};
-  std::unique_ptr<dai::Device> device_;
 };
 }  // namespace depthai_ros_driver
 

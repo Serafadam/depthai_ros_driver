@@ -44,6 +44,7 @@ void MobilenetCamera::on_configure()
   image_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(static_cast<int>(1000.0 / fps_)),
     std::bind(&MobilenetCamera::timer_cb, this));
+    RCLCPP_INFO(this->get_logger(), "MobilenetCamera ready!");
 }
 
 void MobilenetCamera::declare_parameters()
@@ -127,8 +128,7 @@ void MobilenetCamera::setup_pipeline()
 
   stereo_->depth.link(nn_->inputDepth);
   nn_->passthroughDepth.link(xout_depth_->input);
-
-  device_ = std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER);
+  start_the_device();
   int max_q_size = 4;
   video_q_ = device_->getOutputQueue("video", max_q_size, false);
   preview_q_ = device_->getOutputQueue("rgb", max_q_size, false);
