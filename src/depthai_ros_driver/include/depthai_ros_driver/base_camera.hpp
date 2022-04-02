@@ -21,6 +21,7 @@
 #define DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
 
 #include <string>
+#include <memory>
 
 #include "rclcpp/rclcpp.hpp"
 
