@@ -16,13 +16,9 @@ After reopening, execute Code task `setup all` which will download all the repos
 Then a build task will build `depthai_ros_driver` as well as `depthai-core` repository. For more on tasks, see `.vscode/tasks.json` file.
 
 ## Installation
-To build the package you should download and install the latest [depthai_core library](https://github.com/luxonis/depthai-core.git) and its dependencies.
-```
-sudo wget -qO- http://docs.luxonis.com/_static/install_dependencies.sh | bash
-git clone --recursive https://github.com/luxonis/depthai-core.git
-cmake -Hdepthai-core -Bdepthai-core/build -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local
-sudo cmake --build depthai-core/build --target install
-```
+
+When using the Remote Containers plugin, after the container builds, run `setup all` task from VSCode. This automatically pulls the `depthai-core` git submodule and uses rosdep to install all ROS dependencies.
+If you want to install it outside of the container, check out `.vscode/tasks.json` for the exact commands used. You can build both `depthai-core` and `depthai-ros-driver` by using colcon in the base directory.
 ## Running
 To run only the mobilenet_camera, run `ros2 run depthai_ros_driver mobilenet_camera`
 To launch it together with rviz and a node that outputs the detections as TF frames and markers, `ros2 launch depthai_ros_driver mobilenet_camera.launch.py use_rviz:=True`
