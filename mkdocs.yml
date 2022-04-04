@@ -1,4 +1,10 @@
 site_name: "DepthAI ROS Driver"
 plugins:
-- search:
-- simple:
+  - search
+  - simple:
+      merge_docs_dir: false
+theme:
+  name: material
+  palette:
+    primary: orange
+    accent: purple

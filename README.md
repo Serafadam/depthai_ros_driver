@@ -8,7 +8,7 @@ Code was being tested on:
  - OAK-D camera on a x86 PC - ROS2 Galactic
  - OAK-D camera on an ARM based system - Nvidia Jetson, using ROS2 Galactic built from source
 
-![Example](docs/example.gif)
+![](docs/example.gif)
 
 ## Working with VSCode and docker.
 When opening this repository directly in VSCode, you will have the option to develop inside a container. 
