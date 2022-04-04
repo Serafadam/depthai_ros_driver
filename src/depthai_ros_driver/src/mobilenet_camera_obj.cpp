@@ -44,7 +44,7 @@ void MobilenetCamera::on_configure()
   image_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(static_cast<int>(1000.0 / fps_)),
     std::bind(&MobilenetCamera::timer_cb, this));
-    RCLCPP_INFO(this->get_logger(), "MobilenetCamera ready!");
+  RCLCPP_INFO(this->get_logger(), "MobilenetCamera ready!");
 }
 
 void MobilenetCamera::declare_parameters()
