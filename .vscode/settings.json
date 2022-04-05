@@ -6,7 +6,8 @@
     "files.associations": {
         "*.repos": "yaml",
         "*.world": "xml",
-        "*.xacro": "xml"
+        "*.xacro": "xml",
+        "*.ipp": "cpp"
     },
     "python.analysis.extraPaths": [
         "/opt/ros/galactic/lib/python3.8/site-packages/"
