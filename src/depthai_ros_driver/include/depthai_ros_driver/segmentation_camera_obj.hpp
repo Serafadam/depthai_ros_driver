@@ -61,6 +61,11 @@ private:
   void setup_pipeline() override;
   void filter_out_detections(std::vector<int> & det);
   void square_crop(cv::Mat & frame);
+  void resize_and_get_mask(
+    cv::Mat & seg_colored_src, cv::Mat & depth_frame_src, cv::Mat & mask);
+  void colorize_and_mask_depthamap(
+    cv::Mat & depth_src, cv::Mat & depth_colored,
+    cv::Mat & mask, cv::Mat & depth_frame_masked);
   cv::Mat decode_deeplab(cv::Mat mat);
 
   std::shared_ptr<dai::node::ColorCamera> camrgb_;
@@ -79,11 +84,9 @@ private:
   int depth_filter_size_;
   std::string nn_path_;
   std::string resolution_;
-  int counter_;
   int rgb_width_, rgb_height_;
   double fps_;
   std::string camera_frame_;
-  rclcpp::Time start_time_;
   std::atomic<bool> sync_nn{true};
 };
 }  // namespace depthai_ros_driver

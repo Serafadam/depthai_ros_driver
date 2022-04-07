@@ -37,14 +37,14 @@
       "type": "ros",
       "request": "launch",
       "target": "/workspaces/depthai_ros_driver/src/depthai_ros_driver/launch/mobilenet_camera.launch.py",
-      "preLaunchTask": "debug"
+      "preLaunchTask": "build"
     },
     {
       "name": "ROS: Launch SegCamera",
       "type": "ros",
       "request": "launch",
       "target": "/workspaces/depthai_ros_driver/src/depthai_ros_driver/launch/seg_camera.launch.py",
-      "preLaunchTask": "debug"
+      "preLaunchTask": "build"
     }
   ],
   "inputs": [

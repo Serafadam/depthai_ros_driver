@@ -39,8 +39,6 @@ void SegmentationCamera::on_configure()
   setup_pipeline();
   setup_publishers();
 
-  start_time_ = this->get_clock()->now();
-  counter_ = 0;
   image_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(static_cast<int>(1000.0 / fps_)),
     std::bind(&SegmentationCamera::timer_cb, this));
@@ -150,9 +148,6 @@ void SegmentationCamera::timer_cb()
   auto video_in = video_q_->get<dai::ImgFrame>();
   auto preview = preview_q_->get<dai::ImgFrame>();
 
-  counter_++;
-  auto currentTime = this->get_clock()->now();
-
   cv::Mat depth_frame = depth->getFrame();
   cv::Mat video_frame = video_in->getCvFrame();
   cv::Mat preview_frame = preview->getCvFrame();
@@ -162,26 +157,17 @@ void SegmentationCamera::timer_cb()
   cv::Mat nn_mat = cv::Mat(nn_frame);
   nn_mat = nn_mat.reshape(0, 256);
 
-  cv::Mat colors = decode_deeplab(nn_mat);
-  cv::Mat fin_img;
-  cv::addWeighted(preview_frame, 1.0, colors, 0.4, 0.0, fin_img);
-  square_crop(depth_frame);
-  cv::resize(depth_frame, depth_frame, cv::Size(400, 400));
-  cv::resize(colors, colors, cv::Size(depth_frame.cols, depth_frame.rows));
-  cv::Mat bin;
-  cv::threshold(colors, bin, 19, 255, cv::THRESH_BINARY);
-  cv::Mat depth_frame_color;
-  auto disp_mult = 255 / stereo_->initialConfig.getMaxDisparity();
-  depth_frame = depth_frame.mul(disp_mult);
-  cv::normalize(depth_frame, depth_frame_color, 255, 0, cv::NORM_INF, CV_8UC1);
-  cv::equalizeHist(depth_frame_color, depth_frame_color);
-  cv::applyColorMap(depth_frame_color, depth_frame_color, cv::COLORMAP_JET);
-  cv::Mat depth_frame_masked;
-  depth_frame_color.copyTo(depth_frame_masked, bin);
+  cv::Mat seg_colored = decode_deeplab(nn_mat);
+
+  cv::Mat overlaid_preview, mask, depth_frame_masked, depth_frame_colored;
+  cv::addWeighted(preview_frame, 1.0, seg_colored, 0.4, 0.0, overlaid_preview);
+
+  resize_and_get_mask(seg_colored, depth_frame, mask);
+  colorize_and_mask_depthamap(depth_frame, depth_frame_colored, mask, depth_frame_masked);
 
   depth_pub_.publish(
     utils::convert_img_to_ros(
-      depth_frame_color, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      depth_frame_colored, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
 
   cropped_depth_pub_.publish(
     utils::convert_img_to_ros(
@@ -189,11 +175,11 @@ void SegmentationCamera::timer_cb()
 
   image_pub_.publish(
     utils::convert_img_to_ros(
-      fin_img, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      overlaid_preview, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
 
   mask_pub_.publish(
     utils::convert_img_to_ros(
-      bin, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      mask, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
 }
 
 void SegmentationCamera::filter_out_detections(std::vector<int> & det)
@@ -207,6 +193,29 @@ void SegmentationCamera::filter_out_detections(std::vector<int> & det)
         x = 0;
       }
     });
+}
+
+void SegmentationCamera::colorize_and_mask_depthamap(
+  cv::Mat & depth_src, cv::Mat & depth_colored,
+  cv::Mat & mask, cv::Mat & depth_frame_masked)
+{
+  auto disp_mult = 255 / stereo_->initialConfig.getMaxDisparity();
+  depth_src = depth_src.mul(disp_mult);
+  cv::normalize(depth_src, depth_colored, 255, 0, cv::NORM_INF, CV_8UC1);
+  cv::equalizeHist(depth_colored, depth_colored);
+  cv::applyColorMap(depth_colored, depth_colored, cv::COLORMAP_JET);
+  depth_colored.copyTo(depth_frame_masked, mask);
+}
+
+void SegmentationCamera::resize_and_get_mask(
+  cv::Mat & seg_colored_src, cv::Mat & depth_frame_src, cv::Mat & mask)
+{
+  square_crop(depth_frame_src);
+  cv::resize(depth_frame_src, depth_frame_src, cv::Size(400, 400));
+  cv::resize(
+    seg_colored_src, seg_colored_src,
+    cv::Size(depth_frame_src.cols, depth_frame_src.rows));
+  cv::threshold(seg_colored_src, mask, 21, 255, cv::THRESH_BINARY);
 }
 
 void SegmentationCamera::square_crop(cv::Mat & frame)
