@@ -55,7 +55,9 @@ void MobilenetCamera::declare_parameters()
   camera_frame_ = this->declare_parameter<std::string>("camera_frame", "camera_link");
   width_ = this->declare_parameter<int>("width", 1280);
   height_ = this->declare_parameter<int>("height", 720);
-  label_map_ = this->declare_parameter<std::vector<std::string>>("label_map", default_label_map_);
+  label_map_ = this->declare_parameter<std::vector<std::string>>(
+    "label_map",
+    utils::default_label_map_);
   depth_filter_size_ = this->declare_parameter<int>("depth_filter_size", 7);
   nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
   resolution_ = this->declare_parameter<std::string>("resolution", "1080");
@@ -160,16 +162,16 @@ void MobilenetCamera::timer_cb()
   counter_++;
   auto currentTime = this->get_clock()->now();
 
-  cv::Mat frame = in_preview->getCvFrame();
-  cv::Mat depthFrame = depth->getFrame();
+  cv::Mat preview_frame = in_preview->getCvFrame();
+  cv::Mat depth_frame = depth->getFrame();
   cv::Mat video_frame = video_in->getCvFrame();
   cv::Mat mono_left_frame = mono_left->getCvFrame();
   cv::Mat mono_right_frame = mono_right->getCvFrame();
 
-  cv::Mat depthFrameColor;
-  cv::normalize(depthFrame, depthFrameColor, 255, 0, cv::NORM_INF, CV_8UC1);
-  cv::equalizeHist(depthFrameColor, depthFrameColor);
-  cv::applyColorMap(depthFrameColor, depthFrameColor, cv::COLORMAP_JET);
+  cv::Mat depth_frame_color;
+  cv::normalize(depth_frame, depth_frame_color, 255, 0, cv::NORM_INF, CV_8UC1);
+  cv::equalizeHist(depth_frame_color, depth_frame_color);
+  cv::applyColorMap(depth_frame_color, depth_frame_color, cv::COLORMAP_JET);
 
   detections = in_det->detections;
   vision_msgs::msg::Detection3DArray ros_det;
@@ -196,10 +198,12 @@ void MobilenetCamera::timer_cb()
   }
 
   auto preview_img =
-    utils::convert_img_to_ros(frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
+    utils::convert_img_to_ros(
+    preview_frame, sensor_msgs::image_encodings::BGR8,
+    this->get_clock()->now());
   preview_pub_.publish(preview_img);
   auto depth_img = utils::convert_img_to_ros(
-    depthFrameColor, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
+    depth_frame_color, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
   depth_pub_.publish(depth_img);
   auto video_img = utils::convert_img_to_ros(
     video_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());

@@ -73,10 +73,7 @@ private:
   std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_, depth_q_, video_q_,
     mono_left_q_, mono_right_q_;
 
-  const std::vector<std::string> default_label_map_ = {
-    "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
-    "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
-    "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
+
   std::vector<std::string> label_map_;
   cv::Mat frame_;
   rclcpp::TimerBase::SharedPtr image_timer_;

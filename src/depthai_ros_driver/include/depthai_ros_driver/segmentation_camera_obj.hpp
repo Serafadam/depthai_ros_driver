@@ -17,8 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_
-#define DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_
+#ifndef DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_
+#define DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -53,11 +53,15 @@ public:
 private:
   image_transport::Publisher image_pub_;
   image_transport::Publisher depth_pub_;
+  image_transport::Publisher cropped_depth_pub_;
+  image_transport::Publisher mask_pub_;
   void timer_cb() override;
   void declare_parameters() override;
   void setup_publishers() override;
   void setup_pipeline() override;
-  cv::Mat decode_deeplab(const cv::Mat & mat);
+  void filter_out_detections(std::vector<int> & det);
+  void square_crop(cv::Mat & frame);
+  cv::Mat decode_deeplab(cv::Mat mat);
 
   std::shared_ptr<dai::node::ColorCamera> camrgb_;
   std::shared_ptr<dai::node::MonoCamera> monoleft_;
@@ -69,13 +73,14 @@ private:
   std::shared_ptr<dai::DataOutputQueue> preview_q_, segmentation_nn_q_, depth_q_, video_q_;
 
   const int classes_num_ = 21;
-  std::vector<int> chosen_classes_ = {};
+  std::vector<std::string> label_map_;
+  std::vector<int> label_map_indexes_;
   rclcpp::TimerBase::SharedPtr image_timer_;
   int depth_filter_size_;
   std::string nn_path_;
   std::string resolution_;
   int counter_;
-  int width_, height_;
+  int rgb_width_, rgb_height_;
   double fps_;
   std::string camera_frame_;
   rclcpp::Time start_time_;
@@ -83,4 +88,4 @@ private:
 };
 }  // namespace depthai_ros_driver
 
-#endif  //  DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_
+#endif  //  DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_

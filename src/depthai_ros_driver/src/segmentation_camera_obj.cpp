@@ -23,7 +23,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <opencv2/highgui/highgui.hpp>
+
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
 namespace depthai_ros_driver
@@ -53,9 +53,20 @@ void SegmentationCamera::declare_parameters()
     "/models/deeplab_v3_plus_mnv2_decoder_256_openvino_2021.4.blob";
   fps_ = this->declare_parameter<double>("fps", 15.0);
   camera_frame_ = this->declare_parameter<std::string>("camera_frame", "camera_link");
-  width_ = this->declare_parameter<int>("width", 1920);
-  height_ = this->declare_parameter<int>("height", 1080);
-  // this->declare_parameter<std::vector<int>>("chosen_classes", std::vector<int>{1});
+  rgb_width_ = this->declare_parameter<int>("width", 1920);
+  rgb_height_ = this->declare_parameter<int>("height", 1080);
+  label_map_ = this->declare_parameter<std::vector<std::string>>(
+    "label_map",
+    utils::default_label_map_);
+  std::for_each(
+    label_map_.begin(), label_map_.end(), [this](const std::string & l) {
+      auto it = std::find(
+        utils::default_label_map_.begin(),
+        utils::default_label_map_.end(), l);
+      if (it != utils::default_label_map_.end()) {
+        label_map_indexes_.emplace_back(it - utils::default_label_map_.begin());
+      }
+    });
   depth_filter_size_ = this->declare_parameter<int>("depth_filter_size", 7);
   nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
   resolution_ = this->declare_parameter<std::string>("resolution", "1080");
@@ -73,7 +84,7 @@ void SegmentationCamera::setup_pipeline()
   xout_nn_ = pipeline_->create<dai::node::XLinkOut>();
   xout_depth_ = pipeline_->create<dai::node::XLinkOut>();
   xout_video_ = pipeline_->create<dai::node::XLinkOut>();
-  camrgb_->setVideoSize(width_, height_);
+  camrgb_->setVideoSize(rgb_width_, rgb_height_);
 
   xout_rgb_->setStreamName("rgb");
   xout_nn_->setStreamName("nn");
@@ -86,6 +97,7 @@ void SegmentationCamera::setup_pipeline()
   camrgb_->setInterleaved(false);
   camrgb_->setFps(fps_);
   camrgb_->setPreviewKeepAspectRatio(false);
+  // camrgb_->setIspScale(2,3);
 
   nn_->setNumPoolFrames(4);
   nn_->setBlobPath(nn_path_);
@@ -97,6 +109,7 @@ void SegmentationCamera::setup_pipeline()
   monoright_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
   auto median = static_cast<dai::MedianFilter>(depth_filter_size_);
   stereo_->setLeftRightCheck(true);
+  stereo_->setDepthAlign(dai::CameraBoardSocket::RGB);
   stereo_->initialConfig.setLeftRightCheckThreshold(4);
   stereo_->initialConfig.setMedianFilter(median);
   stereo_->initialConfig.setConfidenceThreshold(245);
@@ -126,6 +139,8 @@ void SegmentationCamera::setup_publishers()
 {
   depth_pub_ = image_transport::create_publisher(this, "~/depth");
   image_pub_ = image_transport::create_publisher(this, "~/image_raw");
+  mask_pub_ = image_transport::create_publisher(this, "~/mask");
+  cropped_depth_pub_ = image_transport::create_publisher(this, "~/cropped_depth");
 }
 
 void SegmentationCamera::timer_cb()
@@ -138,29 +153,69 @@ void SegmentationCamera::timer_cb()
   counter_++;
   auto currentTime = this->get_clock()->now();
 
-  cv::Mat depthFrame = depth->getFrame();
+  cv::Mat depth_frame = depth->getFrame();
   cv::Mat video_frame = video_in->getCvFrame();
   cv::Mat preview_frame = preview->getCvFrame();
   std::vector<int> nn_frame = in_det->getFirstLayerInt32();
+  filter_out_detections(nn_frame);
+
   cv::Mat nn_mat = cv::Mat(nn_frame);
   nn_mat = nn_mat.reshape(0, 256);
-  auto colors = decode_deeplab(nn_mat);
+
+  cv::Mat colors = decode_deeplab(nn_mat);
   cv::Mat fin_img;
   cv::addWeighted(preview_frame, 1.0, colors, 0.4, 0.0, fin_img);
-  cv::Mat depthFrameColor;
-  cv::normalize(depthFrame, depthFrameColor, 255, 0, cv::NORM_INF, CV_8UC1);
-  cv::equalizeHist(depthFrameColor, depthFrameColor);
-  cv::applyColorMap(depthFrameColor, depthFrameColor, cv::COLORMAP_JET);
+  square_crop(depth_frame);
+  cv::resize(depth_frame, depth_frame, cv::Size(400, 400));
+  cv::resize(colors, colors, cv::Size(depth_frame.cols, depth_frame.rows));
+  cv::Mat bin;
+  cv::threshold(colors, bin, 19, 255, cv::THRESH_BINARY);
+  cv::Mat depth_frame_color;
+  auto disp_mult = 255 / stereo_->initialConfig.getMaxDisparity();
+  depth_frame = depth_frame.mul(disp_mult);
+  cv::normalize(depth_frame, depth_frame_color, 255, 0, cv::NORM_INF, CV_8UC1);
+  cv::equalizeHist(depth_frame_color, depth_frame_color);
+  cv::applyColorMap(depth_frame_color, depth_frame_color, cv::COLORMAP_JET);
+  cv::Mat depth_frame_masked;
+  depth_frame_color.copyTo(depth_frame_masked, bin);
 
-  auto depth_img = utils::convert_img_to_ros(
-    depthFrameColor, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
-  depth_pub_.publish(depth_img);
-  auto video_img = utils::convert_img_to_ros(
-    fin_img, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
-  image_pub_.publish(video_img);
+  depth_pub_.publish(
+    utils::convert_img_to_ros(
+      depth_frame_color, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+
+  cropped_depth_pub_.publish(
+    utils::convert_img_to_ros(
+      depth_frame_masked, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+
+  image_pub_.publish(
+    utils::convert_img_to_ros(
+      fin_img, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+
+  mask_pub_.publish(
+    utils::convert_img_to_ros(
+      bin, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
 }
 
-cv::Mat SegmentationCamera::decode_deeplab(const cv::Mat & mat)
+void SegmentationCamera::filter_out_detections(std::vector<int> & det)
+{
+  std::for_each(
+    det.begin(), det.end(), [this](int & x) {
+      auto it = std::find(
+        label_map_indexes_.begin(),
+        label_map_indexes_.end(), x);
+      if (it == label_map_indexes_.end()) {
+        x = 0;
+      }
+    });
+}
+
+void SegmentationCamera::square_crop(cv::Mat & frame)
+{
+  int d = frame.rows - frame.cols / 2;
+  frame = frame(cv::Range(0, frame.rows), cv::Range(d, frame.cols - d));
+}
+
+cv::Mat SegmentationCamera::decode_deeplab(cv::Mat mat)
 {
   cv::Mat out = mat.mul(255 / classes_num_);
   out.convertTo(out, CV_8UC1);

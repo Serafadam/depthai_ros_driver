@@ -25,6 +25,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "depthai/depthai.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -41,7 +42,10 @@ resolution_map = {
   {"4k", dai::ColorCameraProperties::SensorResolution::THE_4_K},
   {"12MP", dai::ColorCameraProperties::SensorResolution::THE_12_MP},
 };
-
+const std::vector<std::string> default_label_map_ = {
+  "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
+  "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
+  "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
 sensor_msgs::msg::Image convert_img_to_ros(
   const cv::Mat & frame, const char * encoding, rclcpp::Time stamp);
 }  // namespace utils
