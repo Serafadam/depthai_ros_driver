@@ -22,8 +22,12 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "depthai-shared/common/CameraBoardSocket.hpp"
+#include "depthai/depthai.hpp"
 
 namespace depthai_ros_driver
 {
@@ -39,6 +43,7 @@ public:
   virtual void on_configure() {}
   std::unique_ptr<dai::Device> device_;
   std::unique_ptr<dai::Pipeline> pipeline_;
+
   void start_the_device()
   {
     bool cam_setup = false;
@@ -51,6 +56,36 @@ public:
       }
     }
     RCLCPP_INFO(this->get_logger(), "Camera connected!");
+  }
+
+  sensor_msgs::msg::CameraInfo get_calibration(
+    dai::CameraBoardSocket socket, int width = 0, int height = 0,
+    dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
+    dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)})
+  {
+    dai::CalibrationHandler cal_data = device_->readCalibration();
+    std::vector<std::vector<float>> intrinsics;
+    sensor_msgs::msg::CameraInfo info;
+    if (width == 0 || height == 0) {
+      std::tie(intrinsics, width, height) = cal_data.getDefaultIntrinsics(socket);
+    } else {
+      intrinsics = cal_data.getCameraIntrinsics(socket, width, height);
+    }
+    info.height = height;
+    info.width = width;
+    for (size_t i = 0; i <= intrinsics.size(); ++i) {
+      for (size_t j = 0; j <= intrinsics[i].size(); ++j) {
+        info.k[j + i] = intrinsics[j][i];
+      }
+    }
+    info.r[0] = info.r[4] = info.r[8] = 1;
+    info.d = std::vector<double>(
+      cal_data.getDistortionCoefficients(
+        socket).begin(), cal_data.getDistortionCoefficients(socket).begin());
+
+    std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(socket);
+    info.distortion_model = "rational_polynomial";
+    return info;
   }
 
 private:
