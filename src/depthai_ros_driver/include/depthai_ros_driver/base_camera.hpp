@@ -69,7 +69,9 @@ public:
     if (width == 0 || height == 0) {
       std::tie(intrinsics, width, height) = cal_data.getDefaultIntrinsics(socket);
     } else {
-      intrinsics = cal_data.getCameraIntrinsics(socket, width, height);
+      intrinsics = cal_data.getCameraIntrinsics(
+        socket, width, height, top_left_pixel_id,
+        bottom_right_pixel_id);
     }
     info.height = height;
     info.width = width;
@@ -79,11 +81,23 @@ public:
       }
     }
     info.r[0] = info.r[4] = info.r[8] = 1;
-    info.d = std::vector<double>(
-      cal_data.getDistortionCoefficients(
-        socket).begin(), cal_data.getDistortionCoefficients(socket).begin());
+    auto dist = cal_data.getDistortionCoefficients(socket);
+    for (size_t i = 0; i < 8; ++i) {
+      info.d.push_back(dist[i]);
+    }
 
-    std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(socket);
+    double tx = 0;
+    double ty = 0;
+
+    if (socket == dai::CameraBoardSocket::RGB || socket = dai::CameraBoardSocket::AUTO) {
+
+    }
+    std::copy(intrinsics[0].begin(), intrinsics[0].end(), info.p.begin());
+    std::copy(intrinsics[1].begin(), intrinsics[1].end(), info.p.begin() + 4);
+    info.p[3] = tx;
+    info.p[7] = ty;
+    info.p[11] = 0;
+    // std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(socket);
     info.distortion_model = "rational_polynomial";
     return info;
   }
