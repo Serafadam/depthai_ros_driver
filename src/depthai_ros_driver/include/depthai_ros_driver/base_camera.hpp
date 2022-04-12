@@ -75,29 +75,39 @@ public:
     }
     info.height = height;
     info.width = width;
-    for (size_t i = 0; i <= intrinsics.size(); ++i) {
-      for (size_t j = 0; j <= intrinsics[i].size(); ++j) {
-        info.k[j + i] = intrinsics[j][i];
-      }
-    }
-    info.r[0] = info.r[4] = info.r[8] = 1;
+    std::copy(intrinsics[0].begin(), intrinsics[0].end(), info.k.begin());
+    std::copy(intrinsics[1].begin(), intrinsics[1].end(), info.k.begin() + 3);
+
     auto dist = cal_data.getDistortionCoefficients(socket);
-    for (size_t i = 0; i < 8; ++i) {
-      info.d.push_back(dist[i]);
+
+    for (const float d:dist) {
+      info.d.push_back(static_cast<double>(d));
     }
 
-    double tx = 0;
-    double ty = 0;
-
-    if (socket == dai::CameraBoardSocket::RGB || socket = dai::CameraBoardSocket::AUTO) {
-
-    }
+    double tx = 0.0;
+    double ty = 0.0;
+    info.r[0] = info.r[4] = info.r[8] = 1;
+    std::vector<std::vector<float>> rotation;
     std::copy(intrinsics[0].begin(), intrinsics[0].end(), info.p.begin());
     std::copy(intrinsics[1].begin(), intrinsics[1].end(), info.p.begin() + 4);
+    if (socket == dai::CameraBoardSocket::LEFT) {
+      rotation = cal_data.getStereoLeftRectificationRotation();
+    } else {
+      rotation = cal_data.getStereoRightRectificationRotation();
+      std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(
+        dai::CameraBoardSocket::RIGHT, dai::CameraBoardSocket::LEFT);
+      tx = extrinsics[0][3] / 100.0;
+    }
+
+    for (size_t i = 0; i < rotation.size(); i++) {
+      for (size_t j = 0; j < rotation[i].size(); j++) {
+        info.r[i + j] = rotation[i][j];
+      }
+    }
+
     info.p[3] = tx;
     info.p[7] = ty;
-    info.p[11] = 0;
-    // std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(socket);
+    info.p[11] = 0.0;
     info.distortion_model = "rational_polynomial";
     return info;
   }

@@ -40,6 +40,7 @@
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
 
 namespace depthai_ros_driver
 {
@@ -53,8 +54,9 @@ public:
 private:
   image_transport::Publisher image_pub_;
   image_transport::Publisher depth_pub_;
-  image_transport::Publisher cropped_depth_pub_;
+  image_transport::CameraPublisher cropped_depth_pub_;
   image_transport::Publisher mask_pub_;
+  sensor_msgs::msg::CameraInfo cropped_depth_info_;
   void timer_cb() override;
   void declare_parameters() override;
   void setup_publishers() override;

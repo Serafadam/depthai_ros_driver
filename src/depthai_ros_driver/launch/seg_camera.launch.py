@@ -5,7 +5,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
+from launch_ros.actions import Node, ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
@@ -28,6 +29,24 @@ def generate_launch_description():
                 name='rviz2',
                 output='log',
                 arguments=['-d', rviz_config]
-            )
+            ),
+            ComposableNodeContainer(
+            name='container',
+            namespace='',
+            package='rclcpp_components',
+            executable='component_container',
+            composable_node_descriptions=[
+                # Driver itself
+                ComposableNode(
+                    package='depth_image_proc',
+                    plugin='depth_image_proc::PointCloudXyzNode',
+                    name='point_cloud_xyz_node',
+                    remappings=[('image_rect', '/camera/depth/image_rect_raw'),
+                                ('camera_info', '/camera/depth/camera_info'),
+                                ('image', '/camera/depth/converted_image')]
+                ),
+            ],
+            output='screen',
+        ),
         ]
     )

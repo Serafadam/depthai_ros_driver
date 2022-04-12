@@ -136,9 +136,10 @@ void SegmentationCamera::setup_pipeline()
 void SegmentationCamera::setup_publishers()
 {
   depth_pub_ = image_transport::create_publisher(this, "~/depth");
-  image_pub_ = image_transport::create_publisher(this, "~/image_raw");
+  image_pub_ = image_transport::create_publisher(this, "~/image_rect");
   mask_pub_ = image_transport::create_publisher(this, "~/mask");
-  cropped_depth_pub_ = image_transport::create_publisher(this, "~/cropped_depth");
+  cropped_depth_pub_ = image_transport::create_camera_publisher(this, "~/depth/image_rect_raw");
+  cropped_depth_info_ = get_calibration(dai::CameraBoardSocket::RGB, 400, 400);
 }
 
 void SegmentationCamera::timer_cb()
@@ -168,10 +169,16 @@ void SegmentationCamera::timer_cb()
   depth_pub_.publish(
     utils::convert_img_to_ros(
       depth_frame_colored, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
-
+  auto stamp = this->get_clock()->now();
+  cv::Mat depth_frame_masked_gray;
+  cv::cvtColor(depth_frame_masked, depth_frame_masked_gray, CV_BGR2GRAY);
+  depth_frame_masked_gray.convertTo(depth_frame_masked_gray, CV_32FC1);
+  cropped_depth_info_.header.stamp = stamp;
+  cropped_depth_info_.header.frame_id = "camera_link";
   cropped_depth_pub_.publish(
     utils::convert_img_to_ros(
-      depth_frame_masked, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      depth_frame_masked_gray, sensor_msgs::image_encodings::TYPE_32FC1, stamp),
+    cropped_depth_info_);
 
   image_pub_.publish(
     utils::convert_img_to_ros(
@@ -180,6 +187,7 @@ void SegmentationCamera::timer_cb()
   mask_pub_.publish(
     utils::convert_img_to_ros(
       mask, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+
 }
 
 void SegmentationCamera::filter_out_detections(std::vector<int> & det)
