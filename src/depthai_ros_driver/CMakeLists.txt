@@ -57,6 +57,13 @@ target_link_libraries(seg_camera
                       depthai::opencv
                       depthai::core
                       ${OpenCV_LIBRARIES})
+add_executable(rgbd_camera src/rgbd_camera.cpp src/rgbd_camera_obj.cpp src/utils.cpp)
+ament_target_dependencies(rgbd_camera
+                          ${DEPENDENCIES})
+target_link_libraries(rgbd_camera
+                      depthai::opencv
+                      depthai::core
+                      ${OpenCV_LIBRARIES})
 ament_export_include_directories(include)
 
 if(BUILD_TESTING)
@@ -76,6 +83,7 @@ install(TARGETS
         mobilenet_camera
         rgb_camera
         seg_camera
+        rgbd_camera
         DESTINATION lib/${PROJECT_NAME})
 
 ament_python_install_package(${PROJECT_NAME})

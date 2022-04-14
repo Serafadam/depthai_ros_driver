@@ -49,7 +49,7 @@ public:
     bool cam_setup = false;
     while (!cam_setup) {
       try {
-        device_ = std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER);
+        device_ = std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER_PLUS);
         cam_setup = true;
       } catch (const std::runtime_error & e) {
         RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
@@ -92,7 +92,7 @@ public:
     std::copy(intrinsics[1].begin(), intrinsics[1].end(), info.p.begin() + 4);
     if (socket == dai::CameraBoardSocket::LEFT) {
       rotation = cal_data.getStereoLeftRectificationRotation();
-    } else {
+    } else if(socket == dai::CameraBoardSocket::RIGHT) {
       rotation = cal_data.getStereoRightRectificationRotation();
       std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(
         dai::CameraBoardSocket::RIGHT, dai::CameraBoardSocket::LEFT);
@@ -104,7 +104,11 @@ public:
         info.r[i + j] = rotation[i][j];
       }
     }
-
+    if (socket != dai::CameraBoardSocket::RGB) {
+      std::copy(rotation[0].begin(), rotation[0].end(), info.r.begin());
+      std::copy(rotation[1].begin(), rotation[1].end(), info.r.begin() + 3);
+      std::copy(rotation[2].begin(), rotation[2].end(), info.r.begin() + 6);
+    }
     info.p[3] = tx;
     info.p[7] = ty;
     info.p[11] = 0.0;
