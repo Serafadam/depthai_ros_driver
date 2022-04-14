@@ -38,6 +38,7 @@
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
 namespace depthai_ros_driver
 {
 class RGBCamera : public BaseCamera
@@ -49,6 +50,8 @@ public:
 
 private:
   image_transport::Publisher image_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_pub_;
+  sensor_msgs::msg::CameraInfo rgb_info_;
 
   void timer_cb() override;
   void declare_parameters() override;

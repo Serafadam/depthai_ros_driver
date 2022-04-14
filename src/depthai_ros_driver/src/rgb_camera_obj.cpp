@@ -70,7 +70,8 @@ void RGBCamera::setup_pipeline()
 }
 void RGBCamera::setup_publishers()
 {
-  image_pub_ = image_transport::create_publisher(this, "~/image_raw");
+  image_pub_ = image_transport::create_publisher(this, "~/image_rect");
+  cam_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>("~/camera_info", 10);
 }
 void RGBCamera::timer_cb()
 {
@@ -78,6 +79,8 @@ void RGBCamera::timer_cb()
   cv::Mat video_frame = video_in->getCvFrame();
   auto video_img = utils::convert_img_to_ros(
     video_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
+  auto calib = get_calibration(dai::CameraBoardSocket::RGB);
+  cam_info_pub_->publish(calib);
   image_pub_.publish(video_img);
 }
 
