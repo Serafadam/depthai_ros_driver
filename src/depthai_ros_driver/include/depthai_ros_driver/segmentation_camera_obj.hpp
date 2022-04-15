@@ -35,7 +35,6 @@
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
-#include "depthai_ros_driver/utils.hpp"
 #include "image_transport/image_transport.hpp"
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -58,7 +57,6 @@ private:
   image_transport::Publisher mask_pub_;
   sensor_msgs::msg::CameraInfo cropped_depth_info_;
   void timer_cb() override;
-  void declare_parameters() override;
   void setup_publishers() override;
   void setup_pipeline() override;
   void filter_out_detections(std::vector<int> & det);

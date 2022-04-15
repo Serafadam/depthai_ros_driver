@@ -35,41 +35,31 @@ MobilenetCamera::MobilenetCamera(const rclcpp::NodeOptions & options)
 
 void MobilenetCamera::on_configure()
 {
-  declare_parameters();
+  declare_basic_params();
   setup_pipeline();
   setup_publishers();
 
-  start_time_ = this->get_clock()->now();
-  counter_ = 0;
   image_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(static_cast<int>(1000.0 / fps_)),
     std::bind(&MobilenetCamera::timer_cb, this));
   RCLCPP_INFO(this->get_logger(), "MobilenetCamera ready!");
 }
 
-void MobilenetCamera::declare_parameters()
-{
-  std::string default_nn_path = ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
-    "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
-  fps_ = this->declare_parameter<double>("fps", 15.0);
-  camera_frame_ = this->declare_parameter<std::string>("camera_frame", "camera_link");
-  width_ = this->declare_parameter<int>("width", 1280);
-  height_ = this->declare_parameter<int>("height", 720);
-  label_map_ = this->declare_parameter<std::vector<std::string>>(
-    "label_map",
-    utils::default_label_map_);
-  depth_filter_size_ = this->declare_parameter<int>("depth_filter_size", 7);
-  nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
-  resolution_ = this->declare_parameter<std::string>("resolution", "1080");
-}
+
 void MobilenetCamera::setup_pipeline()
 {
   pipeline_ = std::make_unique<dai::Pipeline>();
-  camrgb_ = pipeline_->create<dai::node::ColorCamera>();
+  setup_rgb();
+  setup_stereo();
   nn_ = pipeline_->create<dai::node::MobileNetSpatialDetectionNetwork>();
-  monoleft_ = pipeline_->create<dai::node::MonoCamera>();
-  monoright_ = pipeline_->create<dai::node::MonoCamera>();
-  stereo_ = pipeline_->create<dai::node::StereoDepth>();
+
+  nn_->setConfidenceThreshold(0.5);
+  nn_->setBlobPath(nn_path_);
+  nn_->setNumInferenceThreads(2);
+  nn_->input.setBlocking(false);
+  nn_->setDepthLowerThreshold(100);
+  nn_->setDepthUpperThreshold(5000);
+  nn_->setBoundingBoxScaleFactor(0.3);
 
   xout_video_ = pipeline_->create<dai::node::XLinkOut>();
   xout_mono_left_ = pipeline_->create<dai::node::XLinkOut>();
@@ -78,7 +68,6 @@ void MobilenetCamera::setup_pipeline()
   xout_nn_ = pipeline_->create<dai::node::XLinkOut>();
   xout_bbdm_ = pipeline_->create<dai::node::XLinkOut>();
   xout_depth_ = pipeline_->create<dai::node::XLinkOut>();
-  camrgb_->setVideoSize(width_, height_);
 
   xout_rgb_->setStreamName("rgb");
   xout_nn_->setStreamName("nn");
@@ -88,38 +77,8 @@ void MobilenetCamera::setup_pipeline()
   xout_mono_left_->setStreamName("mono_left");
   xout_mono_right_->setStreamName("mono_right");
 
-  camrgb_->setPreviewSize(300, 300);
-  camrgb_->setResolution(utils::resolution_map.at(resolution_));
-  camrgb_->setInterleaved(false);
-  camrgb_->setFps(fps_);
-  camrgb_->setPreviewKeepAspectRatio(false);
-
-  nn_->setConfidenceThreshold(0.5);
-  nn_->setBlobPath(nn_path_);
-  nn_->setNumInferenceThreads(2);
-  nn_->input.setBlocking(false);
-  nn_->setDepthLowerThreshold(100);
-  nn_->setDepthUpperThreshold(5000);
-  nn_->setBoundingBoxScaleFactor(0.3);
-  monoleft_->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
-  monoright_->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
-  monoleft_->setBoardSocket(dai::CameraBoardSocket::LEFT);
-  monoright_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-  auto median = static_cast<dai::MedianFilter>(depth_filter_size_);
-  stereo_->setLeftRightCheck(true);
-  stereo_->initialConfig.setLeftRightCheckThreshold(4);
-  stereo_->initialConfig.setMedianFilter(median);
-  stereo_->initialConfig.setConfidenceThreshold(245);
-  stereo_->setRectifyEdgeFillColor(-1);
-
-  monoleft_->out.link(stereo_->left);
-  monoright_->out.link(stereo_->right);
-  camrgb_->video.link(xout_video_->input);
-  monoleft_->out.link(xout_mono_left_->input);
-  monoright_->out.link(xout_mono_right_->input);
-
   camrgb_->preview.link(nn_->input);
-  if (sync_nn) {
+  if (sync_nn_) {
     nn_->passthrough.link(xout_rgb_->input);
   } else {
     camrgb_->preview.link(xout_rgb_->input);
@@ -159,9 +118,6 @@ void MobilenetCamera::timer_cb()
   auto mono_left = mono_left_q_->get<dai::ImgFrame>();
   auto mono_right = mono_right_q_->get<dai::ImgFrame>();
 
-  counter_++;
-  auto currentTime = this->get_clock()->now();
-
   cv::Mat preview_frame = in_preview->getCvFrame();
   cv::Mat depth_frame = depth->getFrame();
   cv::Mat video_frame = video_in->getCvFrame();
@@ -173,7 +129,7 @@ void MobilenetCamera::timer_cb()
   cv::equalizeHist(depth_frame_color, depth_frame_color);
   cv::applyColorMap(depth_frame_color, depth_frame_color, cv::COLORMAP_JET);
 
-  detections = in_det->detections;
+  auto detections = in_det->detections;
   vision_msgs::msg::Detection3DArray ros_det;
   ros_det.header.frame_id = camera_frame_;
   ros_det.header.stamp = this->get_clock()->now();
@@ -198,20 +154,20 @@ void MobilenetCamera::timer_cb()
   }
 
   auto preview_img =
-    utils::convert_img_to_ros(
+    convert_img_to_ros(
     preview_frame, sensor_msgs::image_encodings::BGR8,
     this->get_clock()->now());
   preview_pub_.publish(preview_img);
-  auto depth_img = utils::convert_img_to_ros(
+  auto depth_img = convert_img_to_ros(
     depth_frame_color, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
   depth_pub_.publish(depth_img);
-  auto video_img = utils::convert_img_to_ros(
+  auto video_img = convert_img_to_ros(
     video_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
   image_pub_.publish(video_img);
-  auto mono_left_img = utils::convert_img_to_ros(
+  auto mono_left_img = convert_img_to_ros(
     mono_left_frame, sensor_msgs::image_encodings::MONO8, this->get_clock()->now());
   mono_left_pub_.publish(mono_left_img);
-  auto mono_right_img = utils::convert_img_to_ros(
+  auto mono_right_img = convert_img_to_ros(
     mono_right_frame, sensor_msgs::image_encodings::MONO8, this->get_clock()->now());
   mono_right_pub_.publish(mono_right_img);
   det_pub_->publish(ros_det);

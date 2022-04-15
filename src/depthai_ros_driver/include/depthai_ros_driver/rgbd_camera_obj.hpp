@@ -33,7 +33,6 @@
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
-#include "depthai_ros_driver/utils.hpp"
 #include "image_transport/image_transport.hpp"
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -56,24 +55,13 @@ private:
   sensor_msgs::msg::CameraInfo depth_info_;
 
   void timer_cb() override;
-  void declare_parameters() override;
   void setup_pipeline() override;
   void setup_publishers() override;
 
-  std::shared_ptr<dai::node::ColorCamera> video_;
-  std::shared_ptr<dai::node::MonoCamera> monoleft_;
-  std::shared_ptr<dai::node::MonoCamera> monoright_;
-  std::shared_ptr<dai::node::StereoDepth> stereo_;
 
   std::shared_ptr<dai::node::XLinkOut> xout_video_, xout_depth_;
   std::shared_ptr<dai::DataOutputQueue> video_q_, depth_q_;
 
-  rclcpp::TimerBase::SharedPtr image_timer_;
-  int depth_filter_size_;
-  std::string resolution_;
-  int width_, height_;
-  double fps_;
-  std::string camera_frame_;
 };
 
 }  // namespace depthai_ros_driver

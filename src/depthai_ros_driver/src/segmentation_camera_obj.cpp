@@ -35,7 +35,7 @@ SegmentationCamera::SegmentationCamera(const rclcpp::NodeOptions & options)
 
 void SegmentationCamera::on_configure()
 {
-  declare_parameters();
+  declare_basic_params();
   setup_pipeline();
   setup_publishers();
 
@@ -45,38 +45,17 @@ void SegmentationCamera::on_configure()
   RCLCPP_INFO(this->get_logger(), "SegmentationCamera ready!");
 }
 
-void SegmentationCamera::declare_parameters()
-{
-  std::string default_nn_path = ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
-    "/models/deeplab_v3_plus_mnv2_decoder_256_openvino_2021.4.blob";
-  fps_ = this->declare_parameter<double>("fps", 15.0);
-  camera_frame_ = this->declare_parameter<std::string>("camera_frame", "camera_link");
-  rgb_width_ = this->declare_parameter<int>("width", 1920);
-  rgb_height_ = this->declare_parameter<int>("height", 1080);
-  label_map_ = this->declare_parameter<std::vector<std::string>>(
-    "label_map",
-    utils::default_label_map_);
-  std::for_each(
-    label_map_.begin(), label_map_.end(), [this](const std::string & l) {
-      auto it = std::find(
-        utils::default_label_map_.begin(),
-        utils::default_label_map_.end(), l);
-      if (it != utils::default_label_map_.end()) {
-        label_map_indexes_.emplace_back(it - utils::default_label_map_.begin());
-      }
-    });
-  depth_filter_size_ = this->declare_parameter<int>("depth_filter_size", 7);
-  nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
-  resolution_ = this->declare_parameter<std::string>("resolution", "1080");
-}
 void SegmentationCamera::setup_pipeline()
 {
   pipeline_ = std::make_unique<dai::Pipeline>();
-  camrgb_ = pipeline_->create<dai::node::ColorCamera>();
+  setup_rgb();
+  setup_stereo();
   nn_ = pipeline_->create<dai::node::NeuralNetwork>();
-  monoleft_ = pipeline_->create<dai::node::MonoCamera>();
-  monoright_ = pipeline_->create<dai::node::MonoCamera>();
-  stereo_ = pipeline_->create<dai::node::StereoDepth>();
+
+  nn_->setNumPoolFrames(4);
+  nn_->setBlobPath(nn_path_);
+  nn_->setNumInferenceThreads(2);
+  nn_->input.setBlocking(false);
 
   xout_rgb_ = pipeline_->create<dai::node::XLinkOut>();
   xout_nn_ = pipeline_->create<dai::node::XLinkOut>();
@@ -88,30 +67,6 @@ void SegmentationCamera::setup_pipeline()
   xout_nn_->setStreamName("nn");
   xout_depth_->setStreamName("depth");
   xout_video_->setStreamName("video");
-
-
-  camrgb_->setPreviewSize(256, 256);
-  camrgb_->setResolution(utils::resolution_map.at(resolution_));
-  camrgb_->setInterleaved(false);
-  camrgb_->setFps(fps_);
-  camrgb_->setPreviewKeepAspectRatio(false);
-  // camrgb_->setIspScale(2,3);
-
-  nn_->setNumPoolFrames(4);
-  nn_->setBlobPath(nn_path_);
-  nn_->setNumInferenceThreads(2);
-  nn_->input.setBlocking(false);
-  monoleft_->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
-  monoright_->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
-  monoleft_->setBoardSocket(dai::CameraBoardSocket::LEFT);
-  monoright_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-  auto median = static_cast<dai::MedianFilter>(depth_filter_size_);
-  stereo_->setLeftRightCheck(true);
-  stereo_->setDepthAlign(dai::CameraBoardSocket::RGB);
-  stereo_->initialConfig.setLeftRightCheckThreshold(4);
-  stereo_->initialConfig.setMedianFilter(median);
-  stereo_->initialConfig.setConfidenceThreshold(245);
-  stereo_->setRectifyEdgeFillColor(-1);
 
   monoleft_->out.link(stereo_->left);
   monoright_->out.link(stereo_->right);
@@ -167,7 +122,7 @@ void SegmentationCamera::timer_cb()
   colorize_and_mask_depthamap(depth_frame, depth_frame_colored, mask, depth_frame_masked);
 
   depth_pub_.publish(
-    utils::convert_img_to_ros(
+    convert_img_to_ros(
       depth_frame_colored, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
   auto stamp = this->get_clock()->now();
   cv::Mat depth_frame_masked_gray;
@@ -176,16 +131,16 @@ void SegmentationCamera::timer_cb()
   cropped_depth_info_.header.stamp = stamp;
   cropped_depth_info_.header.frame_id = "camera_link";
   cropped_depth_pub_.publish(
-    utils::convert_img_to_ros(
+    convert_img_to_ros(
       depth_frame_masked_gray, sensor_msgs::image_encodings::TYPE_32FC1, stamp),
     cropped_depth_info_);
 
   image_pub_.publish(
-    utils::convert_img_to_ros(
+    convert_img_to_ros(
       overlaid_preview, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
 
   mask_pub_.publish(
-    utils::convert_img_to_ros(
+    convert_img_to_ros(
       mask, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
 
 }

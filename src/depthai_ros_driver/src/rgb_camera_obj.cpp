@@ -31,7 +31,7 @@ RGBCamera::RGBCamera(const rclcpp::NodeOptions & options)
 
 void RGBCamera::on_configure()
 {
-  declare_parameters();
+  declare_basic_params();
   setup_pipeline();
   setup_publishers();
   image_timer_ = this->create_wall_timer(
@@ -39,49 +39,36 @@ void RGBCamera::on_configure()
     std::bind(&RGBCamera::timer_cb, this));
 }
 
-void RGBCamera::declare_parameters()
-{
-  fps_ = this->declare_parameter<double>("fps", 60.0);
-  camera_frame_ = this->declare_parameter<std::string>("camera_frame", "camera_link");
-  width_ = this->declare_parameter<int>("width", 1280);
-  height_ = this->declare_parameter<int>("height", 720);
-  resolution_ = this->declare_parameter<std::string>("resolution", "1080");
-}
 void RGBCamera::setup_pipeline()
 {
   pipeline_ = std::make_unique<dai::Pipeline>();
-  video_ = pipeline_->create<dai::node::ColorCamera>();
-  video_->setBoardSocket(dai::CameraBoardSocket::RGB);
+  setup_rgb();
   xout_video_ = pipeline_->create<dai::node::XLinkOut>();
-  video_->setVideoSize(width_, height_);
 
   xout_video_->setStreamName("video");
-  video_->setPreviewSize(300, 300);
-  video_->setResolution(utils::resolution_map.at(resolution_));
-  video_->setInterleaved(false);
-  video_->setFps(fps_);
-  video_->setPreviewKeepAspectRatio(false);
   xout_video_->input.setBlocking(false);
   xout_video_->input.setQueueSize(1);
-  video_->video.link(xout_video_->input);
-  device_ = std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER_PLUS);
+  camrgb_->video.link(xout_video_->input);
+  start_the_device();
   int max_q_size = 4;
   video_q_ = device_->getOutputQueue("video", max_q_size, false);
 }
 void RGBCamera::setup_publishers()
 {
-  image_pub_ = image_transport::create_publisher(this, "~/image_rect");
-  cam_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>("~/camera_info", 10);
+  image_pub_ = image_transport::create_camera_publisher(this, "~/image_rect");
+  rgb_info_ = get_calibration(dai::CameraBoardSocket::RGB);
 }
 void RGBCamera::timer_cb()
 {
   auto video_in = video_q_->get<dai::ImgFrame>();
   cv::Mat video_frame = video_in->getCvFrame();
-  auto video_img = utils::convert_img_to_ros(
-    video_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
-  auto calib = get_calibration(dai::CameraBoardSocket::RGB);
-  cam_info_pub_->publish(calib);
-  image_pub_.publish(video_img);
+  auto stamp = this->get_clock()->now();
+  auto video_img = convert_img_to_ros(
+    video_frame, sensor_msgs::image_encodings::BGR8, stamp);
+
+  video_img.header.frame_id = rgb_info_.header.frame_id = camera_frame_;
+  video_img.header.stamp = rgb_info_.header.stamp = stamp;
+  image_pub_.publish(video_img, rgb_info_);
 }
 
 }  // namespace depthai_ros_driver

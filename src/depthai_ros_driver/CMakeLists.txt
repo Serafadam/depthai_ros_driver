@@ -36,28 +36,28 @@ image_transport
 OpenCV)
 include_directories(include)
 
-add_executable(mobilenet_camera src/mobilenet_camera.cpp src/mobilenet_camera_obj.cpp src/utils.cpp)
+add_executable(mobilenet_camera src/mobilenet_camera.cpp src/mobilenet_camera_obj.cpp)
 ament_target_dependencies(mobilenet_camera
                           ${DEPENDENCIES})
 target_link_libraries(mobilenet_camera
                       depthai::opencv
                       depthai::core
                       ${OpenCV_LIBRARIES})
-add_executable(rgb_camera src/rgb_camera.cpp src/rgb_camera_obj.cpp src/utils.cpp)
+add_executable(rgb_camera src/rgb_camera.cpp src/rgb_camera_obj.cpp)
 ament_target_dependencies(rgb_camera
                           ${DEPENDENCIES})
 target_link_libraries(rgb_camera
                       depthai::opencv
                       depthai::core
                       ${OpenCV_LIBRARIES})
-add_executable(seg_camera src/segmentation_camera.cpp src/segmentation_camera_obj.cpp src/utils.cpp)
+add_executable(seg_camera src/segmentation_camera.cpp src/segmentation_camera_obj.cpp)
 ament_target_dependencies(seg_camera
                           ${DEPENDENCIES})
 target_link_libraries(seg_camera
                       depthai::opencv
                       depthai::core
                       ${OpenCV_LIBRARIES})
-add_executable(rgbd_camera src/rgbd_camera.cpp src/rgbd_camera_obj.cpp src/utils.cpp)
+add_executable(rgbd_camera src/rgbd_camera.cpp src/rgbd_camera_obj.cpp)
 ament_target_dependencies(rgbd_camera
                           ${DEPENDENCIES})
 target_link_libraries(rgbd_camera

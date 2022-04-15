@@ -35,7 +35,6 @@
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
-#include "depthai_ros_driver/utils.hpp"
 #include "image_transport/image_transport.hpp"
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -58,14 +57,9 @@ private:
   image_transport::Publisher image_pub_;
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
   void timer_cb() override;
-  void declare_parameters() override;
   void setup_publishers() override;
   void setup_pipeline() override;
 
-  std::shared_ptr<dai::node::ColorCamera> camrgb_;
-  std::shared_ptr<dai::node::MonoCamera> monoleft_;
-  std::shared_ptr<dai::node::MonoCamera> monoright_;
-  std::shared_ptr<dai::node::StereoDepth> stereo_;
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_bbdm_, xout_depth_, xout_video_,
     xout_mono_left_, xout_mono_right_;
@@ -73,20 +67,8 @@ private:
   std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_, depth_q_, video_q_,
     mono_left_q_, mono_right_q_;
 
-
-  std::vector<std::string> label_map_;
-  cv::Mat frame_;
-  rclcpp::TimerBase::SharedPtr image_timer_;
-  std::vector<dai::SpatialImgDetection> detections;
-  int depth_filter_size_;
-  std::string nn_path_;
-  std::string resolution_;
-  int counter_;
-  int width_, height_;
-  double fps_;
-  std::string camera_frame_;
-  rclcpp::Time start_time_;
-  std::atomic<bool> sync_nn{true};
+  bool sync_nn_ = true;
+ 
 };
 }  // namespace depthai_ros_driver
 
