@@ -75,6 +75,9 @@ public:
   }
   virtual void setup_stereo()
   {
+    monoleft_ = pipeline_->create<dai::node::MonoCamera>();
+    monoright_ = pipeline_->create<dai::node::MonoCamera>();
+    stereo_ = pipeline_->create<dai::node::StereoDepth>();
     monoleft_->setResolution(mono_resolution_map.at(mono_resolution_));
     monoright_->setResolution(mono_resolution_map.at(mono_resolution_));
     monoleft_->setBoardSocket(dai::CameraBoardSocket::LEFT);
@@ -88,6 +91,8 @@ public:
     stereo_->initialConfig.setSubpixel(true);
     stereo_->setExtendedDisparity(false);
     stereo_->setRectifyEdgeFillColor(-1);
+      monoleft_->out.link(stereo_->left);
+  monoright_->out.link(stereo_->right);
   }
 
   virtual void declare_basic_params()

@@ -46,12 +46,15 @@ void RGBDCamera::setup_pipeline()
   setup_rgb();
   setup_stereo();
   xout_video_ = pipeline_->create<dai::node::XLinkOut>();
-
+  xout_depth_ = pipeline_->create<dai::node::XLinkOut>();
   xout_video_->setStreamName("video");
+  xout_depth_->setStreamName("depth");
 
   xout_video_->input.setBlocking(false);
   xout_video_->input.setQueueSize(1);
   camrgb_->video.link(xout_video_->input);
+  stereo_->disparity.link(xout_depth_->input);
+
   start_the_device();
   int max_q_size = 4;
   video_q_ = device_->getOutputQueue("video", max_q_size, false);
