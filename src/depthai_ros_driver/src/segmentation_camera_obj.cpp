@@ -36,6 +36,19 @@ SegmentationCamera::SegmentationCamera(const rclcpp::NodeOptions & options)
 void SegmentationCamera::on_configure()
 {
   declare_basic_params();
+  std::string default_nn_path =
+    ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
+    "/models/deeplab_v3_plus_mnv2_decoder_256_openvino_2021.4.blob";
+  nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
+  std::for_each(
+    label_map_.begin(), label_map_.end(), [this](const std::string & l) {
+      auto it = std::find(
+        default_label_map_.begin(),
+        default_label_map_.end(), l);
+      if (it != default_label_map_.end()) {
+        label_map_indexes_.emplace_back(it - default_label_map_.begin());
+      }
+    });
   setup_pipeline();
   setup_publishers();
 
@@ -61,15 +74,14 @@ void SegmentationCamera::setup_pipeline()
   xout_nn_ = pipeline_->create<dai::node::XLinkOut>();
   xout_depth_ = pipeline_->create<dai::node::XLinkOut>();
   xout_video_ = pipeline_->create<dai::node::XLinkOut>();
-  camrgb_->setVideoSize(rgb_width_, rgb_height_);
 
   xout_rgb_->setStreamName("rgb");
   xout_nn_->setStreamName("nn");
   xout_depth_->setStreamName("depth");
   xout_video_->setStreamName("video");
 
-  monoleft_->out.link(stereo_->left);
-  monoright_->out.link(stereo_->right);
+  xout_video_->input.setBlocking(false);
+  xout_video_->input.setQueueSize(1);
   camrgb_->video.link(xout_video_->input);
 
   camrgb_->preview.link(nn_->input);
@@ -80,7 +92,7 @@ void SegmentationCamera::setup_pipeline()
   }
 
   nn_->out.link(xout_nn_->input);
-  stereo_->disparity.link(xout_depth_->input);
+  stereo_->depth.link(xout_depth_->input);
   start_the_device();
   int max_q_size = 4;
   video_q_ = device_->getOutputQueue("video", max_q_size, false);
@@ -91,19 +103,26 @@ void SegmentationCamera::setup_pipeline()
 void SegmentationCamera::setup_publishers()
 {
   depth_pub_ = image_transport::create_publisher(this, "~/depth");
-  image_pub_ = image_transport::create_publisher(this, "~/image_rect");
+  masked_preview_pub_ = image_transport::create_camera_publisher(this, "~/masked_preview");
+  preview_pub_ = image_transport::create_camera_publisher(this, "~/preview");
   mask_pub_ = image_transport::create_publisher(this, "~/mask");
-  cropped_depth_pub_ = image_transport::create_camera_publisher(this, "~/depth/image_rect_raw");
-  cropped_depth_info_ = get_calibration(dai::CameraBoardSocket::RGB, 400, 400);
+  cropped_depth_pub_ = image_transport::create_camera_publisher(this, "~/cropped_depth");
+  cropped_info_ = get_calibration(dai::CameraBoardSocket::RGB, 400, 400);
 }
 
 void SegmentationCamera::timer_cb()
 {
-  auto in_det = segmentation_nn_q_->get<dai::NNData>();
-  auto depth = depth_q_->get<dai::ImgFrame>();
-  auto video_in = video_q_->get<dai::ImgFrame>();
-  auto preview = preview_q_->get<dai::ImgFrame>();
-
+  std::shared_ptr<dai::NNData> in_det;
+  std::shared_ptr<dai::ImgFrame> depth, video_in, preview;
+  try {
+    in_det = segmentation_nn_q_->get<dai::NNData>();
+    depth = depth_q_->get<dai::ImgFrame>();
+    video_in = video_q_->get<dai::ImgFrame>();
+    preview = preview_q_->get<dai::ImgFrame>();
+  } catch (const std::runtime_error & e) {
+    RCLCPP_ERROR(this->get_logger(), "Couldnt get frame! Reason: %s", e.what());
+    return;
+  }
   cv::Mat depth_frame = depth->getFrame();
   cv::Mat video_frame = video_in->getCvFrame();
   cv::Mat preview_frame = preview->getCvFrame();
@@ -119,29 +138,40 @@ void SegmentationCamera::timer_cb()
   cv::addWeighted(preview_frame, 1.0, seg_colored, 0.4, 0.0, overlaid_preview);
 
   resize_and_get_mask(seg_colored, depth_frame, mask);
-  colorize_and_mask_depthamap(depth_frame, depth_frame_colored, mask, depth_frame_masked);
 
   depth_pub_.publish(
     convert_img_to_ros(
-      depth_frame_colored, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      depth_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
   auto stamp = this->get_clock()->now();
-  cv::Mat depth_frame_masked_gray;
-  cv::cvtColor(depth_frame_masked, depth_frame_masked_gray, CV_BGR2GRAY);
-  depth_frame_masked_gray.convertTo(depth_frame_masked_gray, CV_32FC1);
-  cropped_depth_info_.header.stamp = stamp;
-  cropped_depth_info_.header.frame_id = "camera_link";
+  cv::resize(mask, mask, cv::Size(400, 400));
+  cv::resize(overlaid_preview, overlaid_preview, cv::Size(400,400));
+  cv::resize(preview_frame, preview_frame, cv::Size(400,400));
+  cv::Mat depth_frame_masked_gray, mask_gray;
+  cv::cvtColor(mask, mask_gray, CV_BGR2GRAY);
+  mask_gray.convertTo(mask_gray, CV_8U);
+  depth_frame.copyTo(depth_frame_masked_gray, mask_gray);
+  depth_frame_masked_gray.convertTo(depth_frame_masked_gray, CV_16UC1);
+  cropped_info_.header.stamp = stamp;
+  cropped_info_.header.frame_id = "camera_link";
+
   cropped_depth_pub_.publish(
     convert_img_to_ros(
-      depth_frame_masked_gray, sensor_msgs::image_encodings::TYPE_32FC1, stamp),
-    cropped_depth_info_);
+      depth_frame_masked_gray, sensor_msgs::image_encodings::TYPE_16UC1, stamp),
+    cropped_info_);
 
-  image_pub_.publish(
+  masked_preview_pub_.publish(
     convert_img_to_ros(
-      overlaid_preview, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      overlaid_preview, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()),
+      cropped_info_);
+
+  preview_pub_.publish(
+    convert_img_to_ros(
+      preview_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()),
+      cropped_info_);
 
   mask_pub_.publish(
     convert_img_to_ros(
-      mask, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
+      mask, sensor_msgs::image_encodings::MONO16, this->get_clock()->now()));
 
 }
 
@@ -162,8 +192,6 @@ void SegmentationCamera::colorize_and_mask_depthamap(
   cv::Mat & depth_src, cv::Mat & depth_colored,
   cv::Mat & mask, cv::Mat & depth_frame_masked)
 {
-  auto disp_mult = 255 / stereo_->initialConfig.getMaxDisparity();
-  depth_src = depth_src.mul(disp_mult);
   cv::normalize(depth_src, depth_colored, 255, 0, cv::NORM_INF, CV_8UC1);
   cv::equalizeHist(depth_colored, depth_colored);
   cv::applyColorMap(depth_colored, depth_colored, cv::COLORMAP_JET);

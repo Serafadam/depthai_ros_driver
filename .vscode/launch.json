@@ -48,10 +48,10 @@
       "preLaunchTask": "debug"
     },
     {
-      "name": "ROS: Launch RGBCamera",
+      "name": "ROS: Launch RGBDCamera",
       "type": "ros",
       "request": "launch",
-      "target": "/workspaces/depthai_ros_driver/src/depthai_ros_driver/launch/rgb_camera.launch.py",
+      "target": "/workspaces/depthai_ros_driver/src/depthai_ros_driver/launch/rgbd_camera.launch.py",
       "preLaunchTask": "debug"
     }
   ],

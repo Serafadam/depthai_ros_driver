@@ -97,9 +97,7 @@ public:
 
   virtual void declare_basic_params()
   {
-    std::string default_nn_path =
-      ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
-      "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
+
     fps_ = this->declare_parameter<double>("fps", 15.0);
     camera_frame_ = this->declare_parameter<std::string>("camera_frame", "camera_link");
     rgb_width_ = this->declare_parameter<int>("width", 1280);
@@ -108,7 +106,6 @@ public:
       "label_map",
       default_label_map_);
     depth_filter_size_ = this->declare_parameter<int>("depth_filter_size", 7);
-    nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
     rgb_resolution_ = this->declare_parameter<std::string>("rgb_resolution", "1080");
     mono_resolution_ = this->declare_parameter<std::string>("mono_resolution", "400");
   }
@@ -198,6 +195,10 @@ public:
   int rgb_width_, rgb_height_;
   double fps_;
   std::string camera_frame_;
+  const std::vector<std::string> default_label_map_ = {
+    "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
+    "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
+    "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
 
 private:
   virtual void timer_cb() = 0;
@@ -218,12 +219,6 @@ private:
     {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
     {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
   };
-
-  const std::vector<std::string> default_label_map_ = {
-    "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
-    "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
-    "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
-
 
 };
 }  // namespace depthai_ros_driver

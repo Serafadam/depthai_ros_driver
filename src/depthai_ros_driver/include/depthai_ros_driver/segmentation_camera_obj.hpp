@@ -51,11 +51,12 @@ public:
   void on_configure() override;
 
 private:
-  image_transport::Publisher image_pub_;
   image_transport::Publisher depth_pub_;
   image_transport::CameraPublisher cropped_depth_pub_;
+  image_transport::CameraPublisher masked_preview_pub_;
+  image_transport::CameraPublisher preview_pub_;
   image_transport::Publisher mask_pub_;
-  sensor_msgs::msg::CameraInfo cropped_depth_info_;
+  sensor_msgs::msg::CameraInfo cropped_info_;
   void timer_cb() override;
   void setup_publishers() override;
   void setup_pipeline() override;
@@ -68,25 +69,13 @@ private:
     cv::Mat & mask, cv::Mat & depth_frame_masked);
   cv::Mat decode_deeplab(cv::Mat mat);
 
-  std::shared_ptr<dai::node::ColorCamera> camrgb_;
-  std::shared_ptr<dai::node::MonoCamera> monoleft_;
-  std::shared_ptr<dai::node::MonoCamera> monoright_;
-  std::shared_ptr<dai::node::StereoDepth> stereo_;
   std::shared_ptr<dai::node::NeuralNetwork> nn_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_depth_, xout_video_;
 
   std::shared_ptr<dai::DataOutputQueue> preview_q_, segmentation_nn_q_, depth_q_, video_q_;
 
   const int classes_num_ = 21;
-  std::vector<std::string> label_map_;
   std::vector<int> label_map_indexes_;
-  rclcpp::TimerBase::SharedPtr image_timer_;
-  int depth_filter_size_;
-  std::string nn_path_;
-  std::string resolution_;
-  int rgb_width_, rgb_height_;
-  double fps_;
-  std::string camera_frame_;
   std::atomic<bool> sync_nn{true};
 };
 }  // namespace depthai_ros_driver

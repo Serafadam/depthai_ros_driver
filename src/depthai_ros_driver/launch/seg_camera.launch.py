@@ -41,18 +41,19 @@ def generate_launch_description():
                         package='depth_image_proc',
                         plugin='depth_image_proc::ConvertMetricNode',
                         name='convert_metric_node',
-                        remappings=[('image_raw', '/camera/depth/image_rect'),
+                        remappings=[('image_raw', '/camera/cropped_depth'),
                                     ('camera_info', '/camera/depth/camera_info'),
                                     ('image', '/camera/depth/converted_depth')]
                     ),
                     ComposableNode(
-                        package='depth_image_proc',
-                        plugin='depth_image_proc::PointCloudXyzNode',
-                        name='point_cloud_xyz_node',
-                        remappings=[('image_rect', '/camera/depth/converted_depth'),
-                                    ('camera_info', '/camera/depth/camera_info'),
-                                    ('image', '/camera/depth/converted_image')]
-                    ),
+                    package='depth_image_proc',
+                    plugin='depth_image_proc::PointCloudXyzrgbNode',
+                    name='point_cloud_xyzrgb_node',
+                    remappings=[('rgb/camera_info', '/camera/camera_info'),
+                                ('rgb/image_rect_color', '/camera/preview'),
+                                ('depth_registered/image_rect',
+                                 '/camera/depth/converted_depth')]
+                ),
                 ],
                 output='screen',)
         ]

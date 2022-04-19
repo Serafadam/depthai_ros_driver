@@ -53,14 +53,13 @@ void RGBDCamera::setup_pipeline()
   xout_video_->input.setBlocking(false);
   xout_video_->input.setQueueSize(1);
   camrgb_->video.link(xout_video_->input);
-  stereo_->disparity.link(xout_depth_->input);
+  stereo_->depth.link(xout_depth_->input);
 
   start_the_device();
   int max_q_size = 4;
   video_q_ = device_->getOutputQueue("video", max_q_size, false);
   depth_q_ = device_->getOutputQueue("depth", max_q_size, false);
 }
-
 
 void RGBDCamera::setup_publishers()
 {
@@ -75,10 +74,10 @@ void RGBDCamera::timer_cb()
   auto depth_in = depth_q_->get<dai::ImgFrame>();
   cv::Mat video_frame = video_in->getCvFrame();
   cv::Mat depth_frame = depth_in->getCvFrame();
-  cv::resize(depth_frame, depth_frame, cv::Size(1280,720));
-  cv::resize(video_frame, video_frame, cv::Size(1280,720));
+  cv::resize(depth_frame, depth_frame, cv::Size(rgb_width_, rgb_height_));
+  cv::resize(video_frame, video_frame, cv::Size(rgb_width_, rgb_height_));
   cv::Mat depth_norm;
-  cv::normalize(depth_frame, depth_norm, 65535, 0, cv::NORM_MINMAX, CV_16UC1);
+
   auto curr_time = this->get_clock()->now();
   rgb_info_.header.stamp = depth_info_.header.stamp = curr_time;
   rgb_info_.header.frame_id = depth_info_.header.frame_id = "camera_link";
@@ -86,7 +85,7 @@ void RGBDCamera::timer_cb()
   auto video_img = convert_img_to_ros(
     video_frame, sensor_msgs::image_encodings::BGR8, curr_time);
   auto depth_img = convert_img_to_ros(
-    depth_norm, sensor_msgs::image_encodings::TYPE_16UC1, curr_time);
+    depth_frame, sensor_msgs::image_encodings::TYPE_16UC1, curr_time);
 
   image_pub_.publish(video_img, rgb_info_);
   depth_pub_.publish(depth_img, depth_info_);
