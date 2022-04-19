@@ -144,8 +144,8 @@ void SegmentationCamera::timer_cb()
       depth_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()));
   auto stamp = this->get_clock()->now();
   cv::resize(mask, mask, cv::Size(400, 400));
-  cv::resize(overlaid_preview, overlaid_preview, cv::Size(400,400));
-  cv::resize(preview_frame, preview_frame, cv::Size(400,400));
+  cv::resize(overlaid_preview, overlaid_preview, cv::Size(400, 400));
+  cv::resize(preview_frame, preview_frame, cv::Size(400, 400));
   cv::Mat depth_frame_masked_gray, mask_gray;
   cv::cvtColor(mask, mask_gray, CV_BGR2GRAY);
   mask_gray.convertTo(mask_gray, CV_8U);
@@ -162,12 +162,12 @@ void SegmentationCamera::timer_cb()
   masked_preview_pub_.publish(
     convert_img_to_ros(
       overlaid_preview, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()),
-      cropped_info_);
+    cropped_info_);
 
   preview_pub_.publish(
     convert_img_to_ros(
       preview_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now()),
-      cropped_info_);
+    cropped_info_);
 
   mask_pub_.publish(
     convert_img_to_ros(
