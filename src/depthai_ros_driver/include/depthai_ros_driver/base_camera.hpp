@@ -20,6 +20,9 @@
 #ifndef DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
 #define DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
 
+#include <depthai-shared/properties/StereoDepthProperties.hpp>
+#include <depthai/pipeline/datatype/StereoDepthConfig.hpp>
+#include <depthai/pipeline/node/StereoDepth.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,52 +32,51 @@
 #include "depthai/depthai.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
-namespace depthai_ros_driver
-{
-class BaseCamera : public rclcpp::Node
-{
+namespace depthai_ros_driver {
+class BaseCamera : public rclcpp::Node {
 public:
   explicit BaseCamera(
-    const std::string & name,
-    const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
-  : rclcpp::Node(name, options) {}
+      const std::string &name,
+      const rclcpp::NodeOptions &options = rclcpp::NodeOptions())
+      : rclcpp::Node(name, options) {}
   virtual ~BaseCamera() {}
   virtual void on_configure() {}
 
   std::unique_ptr<dai::Device> device_;
   std::unique_ptr<dai::Pipeline> pipeline_;
 
-  void start_the_device()
-  {
+  void start_the_device() {
     bool cam_setup = false;
     while (!cam_setup) {
       try {
-        device_ = std::make_unique<dai::Device>(
-          *pipeline_,
-          dai::UsbSpeed::SUPER_PLUS);
+        device_ = std::make_unique<dai::Device>(*pipeline_,
+                                                dai::UsbSpeed::SUPER_PLUS);
         cam_setup = true;
-      } catch (const std::runtime_error & e) {
+      } catch (const std::runtime_error &e) {
         RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
       }
     }
     RCLCPP_INFO(this->get_logger(), "Camera connected!");
   }
 
-  virtual void setup_rgb(
-    bool set_interleaved = false,
-    bool set_preview_keep_aspect_ratio = false)
-  {
+  virtual void setup_rgb(bool set_interleaved = false,
+                         bool set_preview_keep_aspect_ratio = true,
+                         bool set_isp = true, bool set_man_focus = true) {
     camrgb_ = pipeline_->create<dai::node::ColorCamera>();
     camrgb_->setPreviewSize(preview_size_, preview_size_);
     camrgb_->setVideoSize(rgb_width_, rgb_height_);
     camrgb_->setResolution(rgb_resolution_map.at(rgb_resolution_));
     camrgb_->setInterleaved(set_interleaved);
     camrgb_->setFps(fps_);
+    if (set_isp)
+      camrgb_->setIspScale(2, 3);
+    if (set_man_focus)
+      camrgb_->initialControl.setManualFocus(135);
     camrgb_->setPreviewKeepAspectRatio(set_preview_keep_aspect_ratio);
   }
-  virtual void setup_stereo()
-  {
+  virtual void setup_stereo() {
     monoleft_ = pipeline_->create<dai::node::MonoCamera>();
     monoright_ = pipeline_->create<dai::node::MonoCamera>();
     stereo_ = pipeline_->create<dai::node::StereoDepth>();
@@ -85,47 +87,58 @@ public:
     auto median = static_cast<dai::MedianFilter>(depth_filter_size_);
     stereo_->setLeftRightCheck(lr_check_);
     stereo_->setDepthAlign(dai::CameraBoardSocket::RGB);
+    stereo_->setDefaultProfilePreset(
+        dai::node::StereoDepth::PresetMode::HIGH_DENSITY);
     stereo_->initialConfig.setLeftRightCheckThreshold(lrc_threshold_);
     stereo_->initialConfig.setMedianFilter(median);
     stereo_->initialConfig.setConfidenceThreshold(stereo_conf_threshold_);
     stereo_->initialConfig.setSubpixel(subpixel_);
     stereo_->setExtendedDisparity(extended_disp_);
     stereo_->setRectifyEdgeFillColor(rectify_edge_fill_color_);
+    auto config = stereo_->initialConfig.get();
+    config.postProcessing.speckleFilter.enable = false;
+    config.postProcessing.speckleFilter.speckleRange = 50;
+    config.postProcessing.temporalFilter.enable = true;
+    config.postProcessing.spatialFilter.enable = true;
+    config.postProcessing.spatialFilter.holeFillingRadius = 2;
+    config.postProcessing.spatialFilter.numIterations = 1;
+    config.postProcessing.thresholdFilter.minRange = 400;
+    config.postProcessing.thresholdFilter.maxRange = 15000;
+    config.postProcessing.decimationFilter.decimationFactor = 1;
+    stereo_->initialConfig.set(config);
+
     monoleft_->out.link(stereo_->left);
     monoright_->out.link(stereo_->right);
   }
 
-  virtual void declare_basic_params()
-  {
+  virtual void declare_basic_params() {
 
     fps_ = this->declare_parameter<double>("fps", 15.0);
     camera_frame_ =
-      this->declare_parameter<std::string>("camera_frame", "camera_link");
+        this->declare_parameter<std::string>("camera_frame", "camera_link");
     rgb_width_ = this->declare_parameter<int>("width", 1280);
     rgb_height_ = this->declare_parameter<int>("height", 720);
     label_map_ = this->declare_parameter<std::vector<std::string>>(
-      "label_map", default_label_map_);
+        "label_map", default_label_map_);
     depth_filter_size_ = this->declare_parameter<int>("depth_filter_size", 7);
     rgb_resolution_ =
-      this->declare_parameter<std::string>("rgb_resolution", "1080");
+        this->declare_parameter<std::string>("rgb_resolution", "1080");
     mono_resolution_ =
-      this->declare_parameter<std::string>("mono_resolution", "400");
+        this->declare_parameter<std::string>("mono_resolution", "400");
     preview_size_ = this->declare_parameter<int>("preview_size", 256);
     lr_check_ = this->declare_parameter<bool>("lr_check", true);
     lrc_threshold_ = this->declare_parameter<int>("lrc_threshold", 5);
     stereo_conf_threshold_ =
-      this->declare_parameter<int>("stereo_conf_threshold", 210);
+        this->declare_parameter<int>("stereo_conf_threshold", 255);
     subpixel_ = this->declare_parameter<bool>("subpixel", true);
     extended_disp_ = this->declare_parameter<bool>("extended_disparity", false);
     rectify_edge_fill_color_ =
-      this->declare_parameter<int>("rectify_edge_fill_color", -1);
+        this->declare_parameter<int>("rectify_edge_fill_color", -1);
   }
 
-  sensor_msgs::msg::Image convert_img_to_ros(
-    const cv::Mat & frame,
-    const char * encoding,
-    rclcpp::Time stamp)
-  {
+  sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
+                                             const char *encoding,
+                                             rclcpp::Time stamp) {
     cv_bridge::CvImage img_bridge;
     sensor_msgs::msg::Image img_msg;
     std_msgs::msg::Header header;
@@ -137,20 +150,18 @@ public:
   }
 
   sensor_msgs::msg::CameraInfo
-  get_calibration(
-    dai::CameraBoardSocket socket, int width = 0, int height = 0,
-    dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
-    dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)})
-  {
+  get_calibration(dai::CameraBoardSocket socket, int width = 0, int height = 0,
+                  dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
+                  dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)}) {
     dai::CalibrationHandler cal_data = device_->readCalibration();
     std::vector<std::vector<float>> intrinsics;
     sensor_msgs::msg::CameraInfo info;
     if (width == 0 || height == 0) {
       std::tie(intrinsics, width, height) =
-        cal_data.getDefaultIntrinsics(socket);
+          cal_data.getDefaultIntrinsics(socket);
     } else {
       intrinsics = cal_data.getCameraIntrinsics(
-        socket, width, height, top_left_pixel_id, bottom_right_pixel_id);
+          socket, width, height, top_left_pixel_id, bottom_right_pixel_id);
     }
     info.height = height;
     info.width = width;
@@ -174,7 +185,7 @@ public:
     } else if (socket == dai::CameraBoardSocket::RIGHT) {
       rotation = cal_data.getStereoRightRectificationRotation();
       std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(
-        dai::CameraBoardSocket::RIGHT, dai::CameraBoardSocket::LEFT);
+          dai::CameraBoardSocket::RIGHT, dai::CameraBoardSocket::LEFT);
       tx = extrinsics[0][3] / 100.0;
     }
 
@@ -200,7 +211,7 @@ public:
   std::shared_ptr<dai::node::MonoCamera> monoright_;
   std::shared_ptr<dai::node::StereoDepth> stereo_;
   std::vector<std::string> label_map_;
-  std::thread image_timer_;
+  rclcpp::TimerBase::SharedPtr image_timer_;
   int depth_filter_size_;
   std::string nn_path_;
   std::string rgb_resolution_;
@@ -217,11 +228,11 @@ public:
   int rectify_edge_fill_color_;
   std::string camera_frame_;
   const std::vector<std::string> default_label_map_ = {
-    "background", "aeroplane", "bicycle", "bird", "boat",
-    "bottle", "bus", "car", "cat", "chair",
-    "cow", "diningtable", "dog", "horse", "motorbike",
-    "person", "pottedplant", "sheep", "sofa", "train",
-    "tvmonitor"};
+      "background", "aeroplane",   "bicycle", "bird",  "boat",
+      "bottle",     "bus",         "car",     "cat",   "chair",
+      "cow",        "diningtable", "dog",     "horse", "motorbike",
+      "person",     "pottedplant", "sheep",   "sofa",  "train",
+      "tvmonitor"};
 
 private:
   virtual void timer_cb() = 0;
@@ -229,19 +240,19 @@ private:
   virtual void setup_pipeline() = 0;
 
   std::unordered_map<std::string, dai::ColorCameraProperties::SensorResolution>
-  rgb_resolution_map = {
-    {"1080", dai::ColorCameraProperties::SensorResolution::THE_1080_P},
-    {"4k", dai::ColorCameraProperties::SensorResolution::THE_4_K},
-    {"12MP", dai::ColorCameraProperties::SensorResolution::THE_12_MP},
-  };
+      rgb_resolution_map = {
+          {"1080", dai::ColorCameraProperties::SensorResolution::THE_1080_P},
+          {"4k", dai::ColorCameraProperties::SensorResolution::THE_4_K},
+          {"12MP", dai::ColorCameraProperties::SensorResolution::THE_12_MP},
+      };
 
   std::unordered_map<std::string, dai::MonoCameraProperties::SensorResolution>
-  mono_resolution_map = {
-    {"400", dai::MonoCameraProperties::SensorResolution::THE_400_P},
-    {"480", dai::MonoCameraProperties::SensorResolution::THE_480_P},
-    {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
-    {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
-  };
+      mono_resolution_map = {
+          {"400", dai::MonoCameraProperties::SensorResolution::THE_400_P},
+          {"480", dai::MonoCameraProperties::SensorResolution::THE_480_P},
+          {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
+          {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
+      };
 };
 } // namespace depthai_ros_driver
 

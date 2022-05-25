@@ -33,17 +33,17 @@
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
+#include "depthai_ros_driver/visibility.h"
 #include "image_transport/image_transport.hpp"
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
-namespace depthai_ros_driver
-{
-class RGBDCamera : public BaseCamera
-{
+#include "sensor_msgs/msg/image.hpp"
+namespace depthai_ros_driver {
+class RGBDCamera : public BaseCamera {
 public:
-  explicit RGBDCamera(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  DEPTHAI_ROS_DRIVER_PUBLIC
+  RGBDCamera(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
   ~RGBDCamera() {}
   void on_configure() override;
 
@@ -58,12 +58,11 @@ private:
   void setup_pipeline() override;
   void setup_publishers() override;
 
-
-  std::shared_ptr<dai::node::XLinkOut> xout_video_, xout_depth_;
-  std::shared_ptr<dai::DataOutputQueue> video_q_, depth_q_;
-
+  std::shared_ptr<dai::node::XLinkOut> xout_video_, xout_depth_, xout_left_,
+      xout_right_;
+  std::shared_ptr<dai::DataOutputQueue> video_q_, depth_q_, left_q_, right_q_;
 };
 
-}  // namespace depthai_ros_driver
+} // namespace depthai_ros_driver
 
-#endif  // DEPTHAI_ROS_DRIVER__RGB_CAMERA_OBJ_HPP_
+#endif // DEPTHAI_ROS_DRIVER__RGB_CAMERA_OBJ_HPP_
