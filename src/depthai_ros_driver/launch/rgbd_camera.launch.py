@@ -44,13 +44,13 @@ def generate_launch_description():
                     ComposableNode(
                         package="depth_image_proc",
                         plugin="depth_image_proc::PointCloudXyzNode",
-                        name="point_cloud_xyzrgb_node",
+                        name="point_cloud_xyz_node",
                         remappings=[
-                            ("camera_info", "/camera/camera_info"),
-                            ("image", "/camera/depth/converted_depth"),
+                            ("camera_info", "/camera/depth/camera_info"),
+                            ("image", "/camera/depth/image_rect"),
                             (
                                 "image_rect",
-                                "/camera/depth/image_rect",
+                                "/camera/depth/converted_depth",
                             ),
                         ],
                     ),
@@ -58,7 +58,7 @@ def generate_launch_description():
                         package="depthai_ros_driver",
                         plugin="depthai_ros_driver::RGBDCamera",
                         name="camera",
-                        parameters=[{"fps": 60.0}],
+                        parameters=[{"fps": 30.0}],
                     ),
                 ],
                 output="screen",

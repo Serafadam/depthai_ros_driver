@@ -84,6 +84,8 @@ public:
     monoright_->setResolution(mono_resolution_map.at(mono_resolution_));
     monoleft_->setBoardSocket(dai::CameraBoardSocket::LEFT);
     monoright_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
+    monoleft_->setFps(fps_);
+    monoright_->setFps(fps_);
     auto median = static_cast<dai::MedianFilter>(depth_filter_size_);
     stereo_->setLeftRightCheck(lr_check_);
     stereo_->setDepthAlign(dai::CameraBoardSocket::RGB);
@@ -148,7 +150,6 @@ public:
     img_msg.header.stamp = stamp;
     return img_msg;
   }
-
   sensor_msgs::msg::CameraInfo
   get_calibration(dai::CameraBoardSocket socket, int width = 0, int height = 0,
                   dai::Point2f top_left_pixel_id = {(0.0), (0.0)},

@@ -3,3 +3,4 @@ install/*
 log/*
 site/*
 *.pyc
+.cache/*

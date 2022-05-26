@@ -54,6 +54,10 @@ private:
   sensor_msgs::msg::CameraInfo rgb_info_;
   sensor_msgs::msg::CameraInfo depth_info_;
 
+  void depth_cb(const std::string &name,
+                const std::shared_ptr<dai::ADatatype> &data);
+  void rgb_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
   void timer_cb() override;
   void setup_pipeline() override;
   void setup_publishers() override;
