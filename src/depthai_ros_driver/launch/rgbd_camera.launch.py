@@ -43,13 +43,13 @@ def generate_launch_description():
                     ),
                     ComposableNode(
                         package="depth_image_proc",
-                        plugin="depth_image_proc::PointCloudXyzNode",
+                        plugin="depth_image_proc::PointCloudXyziNode",
                         name="point_cloud_xyz_node",
                         remappings=[
-                            ("camera_info", "/camera/depth/camera_info"),
-                            ("image", "/camera/depth/image_rect"),
+                            ("intensity/camera_info", "/camera/camera_info"),
+                            ("intensity/image_rect", "/camera/image_rect"),
                             (
-                                "image_rect",
+                                "depth/image_rect",
                                 "/camera/depth/converted_depth",
                             ),
                         ],

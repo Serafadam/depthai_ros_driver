@@ -34,16 +34,13 @@
 #include "rclcpp/logging.hpp"
 #include "sensor_msgs/image_encodings.hpp"
 
-namespace depthai_ros_driver
-{
-RGBDCamera::RGBDCamera(const rclcpp::NodeOptions & options)
-: BaseCamera("camera", options)
-{
+namespace depthai_ros_driver {
+RGBDCamera::RGBDCamera(const rclcpp::NodeOptions &options)
+    : BaseCamera("camera", options) {
   on_configure();
 }
 
-void RGBDCamera::on_configure()
-{
+void RGBDCamera::on_configure() {
   declare_basic_params();
   setup_pipeline();
   setup_publishers();
@@ -51,8 +48,7 @@ void RGBDCamera::on_configure()
   //     std::chrono::milliseconds(10), std::bind(&RGBDCamera::timer_cb, this));
 }
 
-void RGBDCamera::setup_pipeline()
-{
+void RGBDCamera::setup_pipeline() {
   pipeline_ = std::make_unique<dai::Pipeline>();
   setup_rgb();
   setup_stereo();
@@ -77,41 +73,50 @@ void RGBDCamera::setup_pipeline()
   depth_q_ = device_->getOutputQueue("depth", max_q_size, false);
   left_q_ = device_->getOutputQueue("left", max_q_size, false);
   right_q_ = device_->getOutputQueue("right", max_q_size, false);
-  video_q_->addCallback(
-    std::bind(
-      &RGBDCamera::rgb_cb, this, std::placeholders::_1,
-      std::placeholders::_2));
-  depth_q_->addCallback(
-    std::bind(
-      &RGBDCamera::depth_cb, this, std::placeholders::_1,
-      std::placeholders::_2));
-
+  video_q_->addCallback(std::bind(
+      &RGBDCamera::rgb_cb, this, std::placeholders::_1, std::placeholders::_2));
+  depth_q_->addCallback(std::bind(&RGBDCamera::depth_cb, this,
+                                  std::placeholders::_1,
+                                  std::placeholders::_2));
 }
 
-void RGBDCamera::setup_publishers()
-{
+void RGBDCamera::setup_publishers() {
   image_pub_ = image_transport::create_camera_publisher(this, "~/image_rect");
   depth_pub_ =
-    image_transport::create_camera_publisher(this, "~/depth/image_rect");
+      image_transport::create_camera_publisher(this, "~/depth/image_rect");
   rgb_info_ = get_calibration(dai::CameraBoardSocket::RGB);
   depth_info_ = get_calibration(dai::CameraBoardSocket::RGB);
 }
-void RGBDCamera::depth_cb(
-  const std::string & name,
-  const std::shared_ptr<dai::ADatatype> & data)
-{
+void RGBDCamera::depth_cb(const std::string &name,
+                          const std::shared_ptr<dai::ADatatype> &data) {
   auto depth_in = std::dynamic_pointer_cast<dai::ImgFrame>(data);
   cv::Mat depth_frame = depth_in->getCvFrame();
   cv::resize(depth_frame, depth_frame, cv::Size(rgb_width_, rgb_height_));
 
-  depth_info_.header.frame_id = "camera_link";
+  depth_info_.header.frame_id = camera_frame_;
   auto curr_time = this->get_clock()->now();
   depth_info_.header.stamp = curr_time;
 
-  auto depth_img = convert_img_to_ros(
-    depth_frame, sensor_msgs::image_encodings::TYPE_16UC1, curr_time);
-  depth_pub_.publish(depth_img, depth_info_);
+  depth_pub_.publish(
+      convert_img_to_ros(depth_frame, sensor_msgs::image_encodings::TYPE_16UC1,
+                         curr_time),
+      depth_info_);
 }
+void RGBDCamera::rgb_cb(const std::string &name,
+                        const std::shared_ptr<dai::ADatatype> &data) {
+  auto depth_in = std::dynamic_pointer_cast<dai::ImgFrame>(data);
+  cv::Mat rgb_frame = depth_in->getCvFrame();
+  cv::resize(rgb_frame, rgb_frame, cv::Size(rgb_width_, rgb_height_));
+  rgb_info_.header.frame_id = camera_frame_;
+  auto curr_time = this->get_clock()->now();
+  rgb_info_.header.stamp = curr_time;
+
+  image_pub_.publish(convert_img_to_ros(rgb_frame,
+                                        sensor_msgs::image_encodings::BGR8,
+                                        curr_time),
+                     depth_info_);
+}
+void RGBDCamera::timer_cb() {}
 } // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::RGBDCamera);
