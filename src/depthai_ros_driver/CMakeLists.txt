@@ -14,12 +14,13 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(vision_msgs REQUIRED)
 find_package(depthai REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -32,6 +33,7 @@ set(
   rclcpp_components
   sensor_msgs
   std_msgs
+  std_srvs
   vision_msgs
   depthai
   cv_bridge

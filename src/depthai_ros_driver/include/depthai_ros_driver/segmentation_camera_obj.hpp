@@ -23,6 +23,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <chrono>
+#include <depthai/pipeline/datatype/ADatatype.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -35,49 +36,53 @@
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
+#include "depthai_ros_driver/visibility.h"
 #include "image_transport/image_transport.hpp"
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
-namespace depthai_ros_driver
-{
-class SegmentationCamera : public BaseCamera
-{
+namespace depthai_ros_driver {
+class SegmentationCamera : public BaseCamera {
 public:
-  explicit SegmentationCamera(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  DEPTHAI_ROS_DRIVER_PUBLIC
+  SegmentationCamera(
+      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
   ~SegmentationCamera() {}
   void on_configure() override;
 
 private:
-  image_transport::Publisher depth_pub_;
+  image_transport::CameraPublisher depth_pub_;
   image_transport::CameraPublisher cropped_depth_pub_;
   image_transport::CameraPublisher masked_preview_pub_;
   image_transport::CameraPublisher preview_pub_;
-  image_transport::Publisher mask_pub_;
+  image_transport::CameraPublisher mask_pub_;
   sensor_msgs::msg::CameraInfo cropped_info_;
-  void timer_cb() override;
+  void timer_cb();
   void setup_publishers() override;
   void setup_pipeline() override;
-  void filter_out_detections(std::vector<int> & det);
-  void square_crop(cv::Mat & frame);
-  void resize_and_get_mask(
-    cv::Mat & seg_colored_src, cv::Mat & depth_frame_src, cv::Mat & mask);
-  void colorize_and_mask_depthamap(
-    cv::Mat & depth_src, cv::Mat & depth_colored,
-    cv::Mat & mask, cv::Mat & depth_frame_masked);
+  void seg_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
+  void filter_out_detections(std::vector<int> &det);
+  void square_crop(cv::Mat &frame);
+  void resize_and_get_mask(cv::Mat &seg_colored_src, cv::Mat &depth_frame_src,
+                           cv::Mat &mask);
+  void colorize_and_mask_depthamap(cv::Mat &depth_src, cv::Mat &depth_colored,
+                                   cv::Mat &mask, cv::Mat &depth_frame_masked);
   cv::Mat decode_deeplab(cv::Mat mat);
 
   std::shared_ptr<dai::node::NeuralNetwork> nn_;
-  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_depth_, xout_video_;
+  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_depth_,
+      xout_video_;
 
-  std::shared_ptr<dai::DataOutputQueue> preview_q_, segmentation_nn_q_, depth_q_, video_q_;
+  std::shared_ptr<dai::DataOutputQueue> preview_q_, segmentation_nn_q_,
+      depth_q_, video_q_;
 
   const int classes_num_ = 21;
   std::vector<int> label_map_indexes_;
   std::atomic<bool> sync_nn{true};
 };
-}  // namespace depthai_ros_driver
+} // namespace depthai_ros_driver
 
-#endif  //  DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_
+#endif //  DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_

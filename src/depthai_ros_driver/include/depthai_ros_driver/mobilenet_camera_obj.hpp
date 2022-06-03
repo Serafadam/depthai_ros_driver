@@ -40,12 +40,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "vision_msgs/msg/detection3_d_array.hpp"
-namespace depthai_ros_driver
-{
-class MobilenetCamera : public BaseCamera
-{
+namespace depthai_ros_driver {
+class MobilenetCamera : public BaseCamera {
 public:
-  explicit MobilenetCamera(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit MobilenetCamera(
+      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
   ~MobilenetCamera() {}
   void on_configure() override;
 
@@ -56,20 +55,19 @@ private:
   image_transport::Publisher mono_right_pub_;
   image_transport::Publisher image_pub_;
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
-  void timer_cb() override;
+  void timer_cb();
   void setup_publishers() override;
   void setup_pipeline() override;
 
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
-  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_bbdm_, xout_depth_, xout_video_,
-    xout_mono_left_, xout_mono_right_;
+  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_bbdm_,
+      xout_depth_, xout_video_, xout_mono_left_, xout_mono_right_;
 
-  std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_, depth_q_, video_q_,
-    mono_left_q_, mono_right_q_;
+  std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_,
+      depth_q_, video_q_, mono_left_q_, mono_right_q_;
 
   bool sync_nn_ = true;
- 
 };
-}  // namespace depthai_ros_driver
+} // namespace depthai_ros_driver
 
-#endif  //  DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_
+#endif //  DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_

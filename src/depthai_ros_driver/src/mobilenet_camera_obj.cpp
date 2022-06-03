@@ -26,28 +26,19 @@
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
-namespace depthai_ros_driver
-{
-MobilenetCamera::MobilenetCamera(const rclcpp::NodeOptions & options)
-: BaseCamera("camera", options)
-{
-}
+namespace depthai_ros_driver {
+MobilenetCamera::MobilenetCamera(const rclcpp::NodeOptions &options)
+    : BaseCamera("camera", options) {}
 
-void MobilenetCamera::on_configure()
-{
+void MobilenetCamera::on_configure() {
   declare_basic_params();
   setup_pipeline();
   setup_publishers();
 
-  image_timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(static_cast<int>(1000.0 / fps_)),
-    std::bind(&MobilenetCamera::timer_cb, this));
   RCLCPP_INFO(this->get_logger(), "MobilenetCamera ready!");
 }
 
-
-void MobilenetCamera::setup_pipeline()
-{
+void MobilenetCamera::setup_pipeline() {
   pipeline_ = std::make_unique<dai::Pipeline>();
   setup_rgb();
   setup_stereo();
@@ -90,27 +81,25 @@ void MobilenetCamera::setup_pipeline()
   stereo_->depth.link(nn_->inputDepth);
   nn_->passthroughDepth.link(xout_depth_->input);
   start_the_device();
-  int max_q_size = 4;
-  video_q_ = device_->getOutputQueue("video", max_q_size, false);
-  preview_q_ = device_->getOutputQueue("rgb", max_q_size, false);
-  detection_nn_q_ = device_->getOutputQueue("nn", max_q_size, false);
-  bbdm_q_ = device_->getOutputQueue("bbdm", max_q_size, false);
-  depth_q_ = device_->getOutputQueue("depth", max_q_size, false);
-  mono_left_q_ = device_->getOutputQueue("mono_left", max_q_size, false);
-  mono_right_q_ = device_->getOutputQueue("mono_right", max_q_size, false);
+  video_q_ = device_->getOutputQueue("video", max_q_size_, false);
+  preview_q_ = device_->getOutputQueue("rgb", max_q_size_, false);
+  detection_nn_q_ = device_->getOutputQueue("nn", max_q_size_, false);
+  bbdm_q_ = device_->getOutputQueue("bbdm", max_q_size_, false);
+  depth_q_ = device_->getOutputQueue("depth", max_q_size_, false);
+  mono_left_q_ = device_->getOutputQueue("mono_left", max_q_size_, false);
+  mono_right_q_ = device_->getOutputQueue("mono_right", max_q_size_, false);
 }
-void MobilenetCamera::setup_publishers()
-{
+void MobilenetCamera::setup_publishers() {
   preview_pub_ = image_transport::create_publisher(this, "~/preview");
   depth_pub_ = image_transport::create_publisher(this, "~/depth");
   mono_left_pub_ = image_transport::create_publisher(this, "~/mono_left");
   mono_right_pub_ = image_transport::create_publisher(this, "~/mono_right");
   image_pub_ = image_transport::create_publisher(this, "~/image_raw");
-  det_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("~/detections", 10);
+  det_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>(
+      "~/detections", 10);
 }
 
-void MobilenetCamera::timer_cb()
-{
+void MobilenetCamera::timer_cb() {
   auto in_preview = preview_q_->get<dai::ImgFrame>();
   auto in_det = detection_nn_q_->get<dai::SpatialImgDetections>();
   auto depth = depth_q_->get<dai::ImgFrame>();
@@ -131,7 +120,7 @@ void MobilenetCamera::timer_cb()
 
   auto detections = in_det->detections;
   vision_msgs::msg::Detection3DArray ros_det;
-  ros_det.header.frame_id = camera_frame_;
+  ros_det.header.frame_id = rgb_frame_;
   ros_det.header.stamp = this->get_clock()->now();
 
   ros_det.detections.resize(detections.size());
@@ -143,34 +132,39 @@ void MobilenetCamera::timer_cb()
     }
     ros_det.detections[i].results.resize(1);
     ros_det.detections[i].results[0].hypothesis.class_id = label_name;
-    ros_det.detections[i].results[0].hypothesis.score = detections[i].confidence;
-    ros_det.detections[i].results[0].hypothesis.score = detections[i].confidence;
+    ros_det.detections[i].results[0].hypothesis.score =
+        detections[i].confidence;
+    ros_det.detections[i].results[0].hypothesis.score =
+        detections[i].confidence;
     ros_det.detections[i].results[0].pose.pose.position.x =
-      detections[i].spatialCoordinates.z / 1000.0;
+        detections[i].spatialCoordinates.z / 1000.0;
     ros_det.detections[i].results[0].pose.pose.position.y =
-      -detections[i].spatialCoordinates.x / 1000.0;
+        -detections[i].spatialCoordinates.x / 1000.0;
     ros_det.detections[i].results[0].pose.pose.position.z =
-      -detections[i].spatialCoordinates.y / 1000.0;
+        -detections[i].spatialCoordinates.y / 1000.0;
   }
 
   auto preview_img =
-    convert_img_to_ros(
-    preview_frame, sensor_msgs::image_encodings::BGR8,
-    this->get_clock()->now());
+      convert_img_to_ros(preview_frame, sensor_msgs::image_encodings::BGR8,
+                         rgb_frame_, this->get_clock()->now());
   preview_pub_.publish(preview_img);
-  auto depth_img = convert_img_to_ros(
-    depth_frame_color, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
+  auto depth_img =
+      convert_img_to_ros(depth_frame_color, sensor_msgs::image_encodings::BGR8,
+                         rgb_frame_, this->get_clock()->now());
   depth_pub_.publish(depth_img);
-  auto video_img = convert_img_to_ros(
-    video_frame, sensor_msgs::image_encodings::BGR8, this->get_clock()->now());
+  auto video_img =
+      convert_img_to_ros(video_frame, sensor_msgs::image_encodings::BGR8,
+                         rgb_frame_, this->get_clock()->now());
   image_pub_.publish(video_img);
-  auto mono_left_img = convert_img_to_ros(
-    mono_left_frame, sensor_msgs::image_encodings::MONO8, this->get_clock()->now());
+  auto mono_left_img =
+      convert_img_to_ros(mono_left_frame, sensor_msgs::image_encodings::MONO8,
+                         rgb_frame_, this->get_clock()->now());
   mono_left_pub_.publish(mono_left_img);
-  auto mono_right_img = convert_img_to_ros(
-    mono_right_frame, sensor_msgs::image_encodings::MONO8, this->get_clock()->now());
+  auto mono_right_img =
+      convert_img_to_ros(mono_right_frame, sensor_msgs::image_encodings::MONO8,
+                         rgb_frame_, this->get_clock()->now());
   mono_right_pub_.publish(mono_right_img);
   det_pub_->publish(ros_det);
 }
 
-}  // namespace depthai_ros_driver
+} // namespace depthai_ros_driver

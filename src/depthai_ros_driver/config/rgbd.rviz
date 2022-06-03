@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /PointCloud21
         - /PointCloud21/Topic1
+        - /Image2
       Splitter Ratio: 0.5
     Tree Height: 90
   - Class: rviz_common/Selection
@@ -109,7 +110,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /camera/image_rect
+        Value: /camera/color/image_raw
       Value: true
   Enabled: true
   Global Options:

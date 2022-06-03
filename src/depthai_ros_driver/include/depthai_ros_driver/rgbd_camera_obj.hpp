@@ -58,7 +58,7 @@ private:
                 const std::shared_ptr<dai::ADatatype> &data);
   void rgb_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
-  void timer_cb() override;
+  void timer_cb();
   void setup_pipeline() override;
   void setup_publishers() override;
 
