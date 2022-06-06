@@ -49,6 +49,8 @@ void RGBDCamera::setup_pipeline() {
   pipeline_ = std::make_unique<dai::Pipeline>();
   setup_rgb();
   setup_stereo();
+  if (enable_recording_)
+    setup_recording();
   setup_all_xout_streams();
   start_the_device();
   setup_all_queues();

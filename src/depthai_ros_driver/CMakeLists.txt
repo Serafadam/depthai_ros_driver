@@ -53,17 +53,6 @@ target_link_libraries(
   depthai::core
   ${OpenCV_LIBRARIES}
 )
-add_executable(rgb_camera src/rgb_camera.cpp src/rgb_camera_obj.cpp)
-ament_target_dependencies(
-  rgb_camera
-  ${DEPENDENCIES}
-)
-target_link_libraries(
-  rgb_camera
-  depthai::opencv
-  depthai::core
-  ${OpenCV_LIBRARIES}
-)
 add_executable(seg_camera src/segmentation_camera.cpp src/segmentation_camera_obj.cpp)
 ament_target_dependencies(
   seg_camera
@@ -106,7 +95,6 @@ install(DIRECTORY launch models config DESTINATION share/${PROJECT_NAME})
 install(
   TARGETS
   mobilenet_camera
-  rgb_camera
   seg_camera
   DESTINATION lib/${PROJECT_NAME}
 )

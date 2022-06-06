@@ -21,25 +21,30 @@
 #define DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
 
 #include <memory>
+#include <rclcpp/logging.hpp>
 #include <string>
 #include <vector>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "depthai-shared/properties/StereoDepthProperties.hpp"
+#include "depthai-shared/properties/VideoEncoderProperties.hpp"
 #include "depthai/depthai.hpp"
 #include "depthai/device/DataQueue.hpp"
 #include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
 #include "depthai/pipeline/datatype/StereoDepthConfig.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
+#include "depthai/pipeline/node/VideoEncoder.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "image_transport/camera_publisher.hpp"
 #include "image_transport/image_transport.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/service.hpp"
 #include "sensor_msgs/image_encodings.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 namespace depthai_ros_driver {
 class BaseCamera : public rclcpp::Node {
@@ -71,6 +76,7 @@ public:
   virtual void setup_rgb() {
     camrgb_ = pipeline_->create<dai::node::ColorCamera>();
     camrgb_->setPreviewSize(preview_size_, preview_size_);
+    RCLCPP_INFO(this->get_logger(), "Preview seize %d", preview_size_);
     camrgb_->setVideoSize(rgb_width_, rgb_height_);
     camrgb_->setResolution(rgb_resolution_map.at(rgb_resolution_));
     camrgb_->setInterleaved(set_interleaved_);
@@ -122,7 +128,25 @@ public:
     monoleft_->out.link(stereo_->left);
     monoright_->out.link(stereo_->right);
   }
-
+  void trig_rec_cb(const std_srvs::srv::Trigger::Request::SharedPtr req,
+                   std_srvs::srv::Trigger::Response::SharedPtr res) {
+    if (!record_) {
+      RCLCPP_INFO(this->get_logger(), "Starting recording.");
+    } else {
+      RCLCPP_INFO(this->get_logger(), "Stopping recording.");
+      started_recording_ = false;
+    }
+    record_ = !record_;
+  }
+  void setup_recording() {
+    video_enc_ = pipeline_->create<dai::node::VideoEncoder>();
+    video_enc_->setDefaultProfilePreset(
+        fps_, dai::VideoEncoderProperties::Profile::H264_MAIN);
+    trigger_recording_srv_ = this->create_service<std_srvs::srv::Trigger>(
+        "~/trigger_recording",
+        std::bind(&BaseCamera::trig_rec_cb, this, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
   virtual void declare_rgb_params() {
     fps_ = this->declare_parameter<double>("fps", 30.0);
     rgb_frame_ =
@@ -174,6 +198,9 @@ public:
     decimation_factor_ = this->declare_parameter<int>("decimation_factor", 1);
     enable_depth_pub_ = this->declare_parameter<bool>("enable_depth", true);
     enable_lr_pub_ = this->declare_parameter<bool>("enable_lr", true);
+    enable_recording_ =
+        this->declare_parameter<bool>("enable_recording", false);
+    align_depth_ = this->declare_parameter<bool>("align_depth", false);
   }
 
   virtual void declare_basic_params() {
@@ -275,27 +302,47 @@ public:
     return info;
   }
 
+  void setup_rgb_xout() {
+    xout_rgb_ = pipeline_->create<dai::node::XLinkOut>();
+    xout_rgb_->setStreamName(rgb_q_name_);
+    camrgb_->video.link(xout_rgb_->input);
+  }
+  void setup_depth_xout() {
+    xout_depth_ = pipeline_->create<dai::node::XLinkOut>();
+    xout_depth_->setStreamName(depth_q_name_);
+    stereo_->depth.link(xout_depth_->input);
+  }
+
+  void setup_lr_xout() {
+    xout_left_ = pipeline_->create<dai::node::XLinkOut>();
+    xout_left_->setStreamName(left_q_name_);
+    monoleft_->out.link(xout_left_->input);
+    xout_right_ = pipeline_->create<dai::node::XLinkOut>();
+    xout_right_->setStreamName(right_q_name_);
+    monoright_->out.link(xout_right_->input);
+  }
+  void setup_record_xout() {
+    xout_enc_ = pipeline_->create<dai::node::XLinkOut>();
+    xout_enc_->setStreamName(video_enc_q_name_);
+    camrgb_->video.link(video_enc_->input);
+    video_enc_->bitstream.link(xout_enc_->input);
+  }
   void setup_all_xout_streams() {
     if (enable_rgb_pub_) {
       RCLCPP_INFO(this->get_logger(), "Enabling rgb pub.");
-      xout_rgb_ = pipeline_->create<dai::node::XLinkOut>();
-      xout_rgb_->setStreamName(rgb_q_name_);
-      camrgb_->video.link(xout_rgb_->input);
+      setup_rgb_xout();
     }
     if (enable_depth_pub_) {
       RCLCPP_INFO(this->get_logger(), "Enabling depth pub.");
-      xout_depth_ = pipeline_->create<dai::node::XLinkOut>();
-      xout_depth_->setStreamName(depth_q_name_);
-      stereo_->depth.link(xout_depth_->input);
+      setup_depth_xout();
     }
     if (enable_lr_pub_) {
       RCLCPP_INFO(this->get_logger(), "Enabling left & right pub.");
-      xout_left_ = pipeline_->create<dai::node::XLinkOut>();
-      xout_left_->setStreamName(left_q_name_);
-      monoleft_->out.link(xout_left_->input);
-      xout_right_ = pipeline_->create<dai::node::XLinkOut>();
-      xout_right_->setStreamName(right_q_name_);
-      monoright_->out.link(xout_right_->input);
+      setup_lr_xout();
+    }
+    if (enable_recording_) {
+      RCLCPP_INFO(this->get_logger(), "Enabling recording.");
+      setup_record_xout();
     }
   }
   void regular_queue_cb(const std::string &name,
@@ -316,48 +363,89 @@ public:
                   right_pub_);
     }
   }
-  void setup_all_queues() {
-    if (enable_rgb_pub_) {
-      rgb_pub_ =
-          image_transport::create_camera_publisher(this, "~/color/image_raw");
-      rgb_info_ = get_calibration(dai::CameraBoardSocket::RGB);
-      rgb_q_ = device_->getOutputQueue(rgb_q_name_, max_q_size_, false);
-      rgb_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
-                                    std::placeholders::_1,
-                                    std::placeholders::_2));
-    }
-    if (enable_depth_pub_) {
-      depth_pub_ =
-          image_transport::create_camera_publisher(this, "~/depth/image_raw");
-      if (align_depth_) {
-        depth_info_ = get_calibration(dai::CameraBoardSocket::RGB);
-      } else {
-        depth_info_ = get_calibration(dai::CameraBoardSocket::RIGHT);
-      }
+
+  void enable_rgb_q() {
+    rgb_pub_ =
+        image_transport::create_camera_publisher(this, "~/color/image_raw");
+    rgb_info_ =
+        get_calibration(dai::CameraBoardSocket::RGB, rgb_width_, rgb_height_);
+    rgb_q_ = device_->getOutputQueue(rgb_q_name_, max_q_size_, false);
+    rgb_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
+                                  std::placeholders::_1,
+                                  std::placeholders::_2));
+  }
+  void enable_depth_q() {
+    depth_pub_ =
+        image_transport::create_camera_publisher(this, "~/depth/image_raw");
+    if (align_depth_) {
+      depth_info_ =
+          get_calibration(dai::CameraBoardSocket::RGB, rgb_width_, rgb_height_);
+    } else {
+      depth_info_ = get_calibration(dai::CameraBoardSocket::RIGHT);
       depth_q_ = device_->getOutputQueue(depth_q_name_, max_q_size_, false);
       depth_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
                                       std::placeholders::_1,
                                       std::placeholders::_2));
     }
-    if (enable_lr_pub_) {
-      left_pub_ =
-          image_transport::create_camera_publisher(this, "~/left/image_raw");
-      left_info_ = get_calibration(dai::CameraBoardSocket::LEFT);
-      right_pub_ =
-          image_transport::create_camera_publisher(this, "~/right/image_raw");
-      right_info_ = get_calibration(dai::CameraBoardSocket::RIGHT);
+  }
+  void setup_lr_q() {
+    left_pub_ =
+        image_transport::create_camera_publisher(this, "~/left/image_raw");
+    left_info_ = get_calibration(dai::CameraBoardSocket::LEFT);
+    right_pub_ =
+        image_transport::create_camera_publisher(this, "~/right/image_raw");
+    right_info_ = get_calibration(dai::CameraBoardSocket::RIGHT);
 
-      left_q_ = device_->getOutputQueue(left_q_name_, max_q_size_, false);
-      left_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
-                                     std::placeholders::_1,
-                                     std::placeholders::_2));
+    left_q_ = device_->getOutputQueue(left_q_name_, max_q_size_, false);
+    left_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2));
 
-      right_q_ = device_->getOutputQueue(right_q_name_, max_q_size_, false);
-      right_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
-                                      std::placeholders::_1,
-                                      std::placeholders::_2));
+    right_q_ = device_->getOutputQueue(right_q_name_, max_q_size_, false);
+    right_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
+  }
+  void enc_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data) {
+    if (record_) {
+      if (!started_recording_) {
+        std::stringstream current_time;
+        // getting current time from node
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        current_time << std::put_time(std::localtime(&in_time_t),
+                                      "%Y_%m_%d_%H_%M_%S");
+        current_time << ".h265";
+        video_file_ = std::ofstream(current_time.str(), std::ios::binary);
+        started_recording_ = true;
+      }
+      auto enc_in = std::dynamic_pointer_cast<dai::ImgFrame>(data);
+      video_file_.write((char *)(enc_in->getData().data()),
+                        enc_in->getData().size());
     }
   }
+  void setup_recording_q() {
+    enc_q_ = device_->getOutputQueue(video_enc_q_name_, max_q_size_, false);
+    enc_q_->addCallback(std::bind(&BaseCamera::enc_cb, this,
+                                  std::placeholders::_1,
+                                  std::placeholders::_2));
+  }
+  void setup_all_queues() {
+    if (enable_rgb_pub_) {
+      enable_rgb_q();
+    }
+    if (enable_depth_pub_) {
+      enable_depth_q();
+    }
+    if (enable_lr_pub_) {
+      setup_lr_q();
+    }
+    if (enable_recording_) {
+      setup_recording_q();
+    }
+  }
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr trigger_recording_srv_;
   image_transport::CameraPublisher rgb_pub_, depth_pub_, left_pub_, right_pub_;
   sensor_msgs::msg::CameraInfo rgb_info_, depth_info_, left_info_, right_info_;
   std::shared_ptr<dai::node::ColorCamera> camrgb_;
@@ -365,8 +453,10 @@ public:
   std::shared_ptr<dai::node::MonoCamera> monoright_;
   std::shared_ptr<dai::node::StereoDepth> stereo_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_depth_, xout_left_,
-      xout_right_;
-  std::shared_ptr<dai::DataOutputQueue> rgb_q_, depth_q_, left_q_, right_q_;
+      xout_right_, xout_enc_;
+  std::shared_ptr<dai::node::VideoEncoder> video_enc_;
+  std::shared_ptr<dai::DataOutputQueue> rgb_q_, depth_q_, left_q_, right_q_,
+      enc_q_;
 
   std::vector<std::string> label_map_;
   int depth_filter_size_;
@@ -398,16 +488,19 @@ public:
   int threshold_filter_min_range_;
   int threshold_filter_max_range_;
   int decimation_factor_;
+  std::ofstream video_file_;
   std::string rgb_frame_, left_frame_, right_frame_;
   const std::string rgb_q_name_ = "rgb";
   const std::string depth_q_name_ = "depth";
   const std::string left_q_name_ = "left";
   const std::string right_q_name_ = "right";
+  const std::string video_enc_q_name_ = "h265";
   bool enable_rgb_pub_;
   bool enable_depth_pub_;
   bool enable_lr_pub_;
   bool enable_recording_;
   bool align_depth_;
+  std::atomic<bool> record_, started_recording_;
   const std::vector<std::string> default_label_map_ = {
       "background", "aeroplane",   "bicycle", "bird",  "boat",
       "bottle",     "bus",         "car",     "cat",   "chair",

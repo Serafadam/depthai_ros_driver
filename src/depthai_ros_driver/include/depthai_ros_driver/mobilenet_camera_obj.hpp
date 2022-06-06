@@ -23,6 +23,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <chrono>
+#include <depthai/pipeline/datatype/ADatatype.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -49,22 +50,15 @@ public:
   void on_configure() override;
 
 private:
-  image_transport::Publisher preview_pub_;
-  image_transport::Publisher depth_pub_;
-  image_transport::Publisher mono_left_pub_;
-  image_transport::Publisher mono_right_pub_;
-  image_transport::Publisher image_pub_;
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
-  void timer_cb();
+  void det_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
   void setup_publishers() override;
   void setup_pipeline() override;
 
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
-  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_bbdm_,
-      xout_depth_, xout_video_, xout_mono_left_, xout_mono_right_;
-
-  std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_,
-      depth_q_, video_q_, mono_left_q_, mono_right_q_;
+  std::shared_ptr<dai::node::XLinkOut> xout_nn_, xout_bbdm_;
+  std::shared_ptr<dai::DataOutputQueue> detection_nn_q_, bbdm_q_;
 
   bool sync_nn_ = true;
 };
