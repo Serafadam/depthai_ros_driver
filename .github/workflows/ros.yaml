@@ -21,6 +21,7 @@ jobs:
         name: Test
         run: |
           cd ./.devcontainer && docker build -t ${OWNER_LC}_depthai_ros_driver -f Dockerfile .
+          git config --global --add safe.directory /home/runner/work/depthai_ros_driver/depthai_ros_driver \
           docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
           bash -c "
           git submodule update --init --recursive \
