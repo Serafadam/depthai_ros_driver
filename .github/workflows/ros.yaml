@@ -14,13 +14,14 @@ jobs:
           echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
         env:
           OWNER: '${{ github.repository_owner }}'
+      - name: github permission fix
+        run:  git config --global --add safe.directory /home/runner/work/depthai_ros_driver/depthai_ros_driver
       - 
         name: Checkout code
         uses: actions/checkout@v3
       -
         name: Test
         run: |
-          git config --global --add safe.directory /home/runner/work/depthai_ros_driver/depthai_ros_driver
           cd ./.devcontainer && docker build -t ${OWNER_LC}_depthai_ros_driver -f Dockerfile .
           docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
           bash -c "
