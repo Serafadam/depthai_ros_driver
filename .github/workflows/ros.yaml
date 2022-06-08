@@ -14,10 +14,10 @@ jobs:
           echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
         env:
           OWNER: '${{ github.repository_owner }}'
-      - name: Checkout code
-        uses: actions/checkout@v3
       - name: github permission fix
         run:  git config --global --add safe.directory /home/runner/work/depthai_ros_driver/depthai_ros_driver
+      - name: Checkout code
+        uses: actions/checkout@v3
       -
         name: Test
         run: |
