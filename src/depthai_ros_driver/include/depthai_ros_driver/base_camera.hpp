@@ -64,7 +64,7 @@ public:
     while (!cam_setup) {
       try {
         device_ = std::make_unique<dai::Device>(*pipeline_,
-                                                dai::UsbSpeed::SUPER_PLUS);
+                                                dai::UsbSpeed::HIGH);
         cam_setup = true;
       } catch (const std::runtime_error &e) {
         RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
@@ -75,16 +75,25 @@ public:
 
   virtual void setup_rgb() {
     camrgb_ = pipeline_->create<dai::node::ColorCamera>();
+    RCLCPP_INFO(this->get_logger(), "Preview size %d", preview_size_);
     camrgb_->setPreviewSize(preview_size_, preview_size_);
-    RCLCPP_INFO(this->get_logger(), "Preview seize %d", preview_size_);
+    RCLCPP_INFO(this->get_logger(), "RGB width: %d, height: %d", rgb_width_, rgb_height_);
     camrgb_->setVideoSize(rgb_width_, rgb_height_);
+    RCLCPP_INFO(this->get_logger(), "RGB resolution %s", rgb_resolution_.c_str());
     camrgb_->setResolution(rgb_resolution_map.at(rgb_resolution_));
+    RCLCPP_INFO(this->get_logger(), "Interleaved: %d", set_interleaved_);
     camrgb_->setInterleaved(set_interleaved_);
+    RCLCPP_INFO(this->get_logger(), "FPS: %f", fps_);
     camrgb_->setFps(fps_);
+    RCLCPP_INFO(this->get_logger(), "Set ISP scale: %d", set_isp_);
     if (set_isp_)
       camrgb_->setIspScale(2, 3);
-    if (set_man_focus_)
+    RCLCPP_INFO(this->get_logger(), "Enable manual focus: %d", set_man_focus_);
+    if (set_man_focus_){
+      RCLCPP_INFO(this->get_logger(), "Manual focus set: %d", man_focus_);
       camrgb_->initialControl.setManualFocus(man_focus_);
+    }
+    RCLCPP_INFO(this->get_logger(), "Keep preview aspect ratio: %d", set_preview_keep_aspect_ratio_);
     camrgb_->setPreviewKeepAspectRatio(set_preview_keep_aspect_ratio_);
   }
   virtual void setup_stereo() {
@@ -200,7 +209,7 @@ public:
     enable_lr_pub_ = this->declare_parameter<bool>("enable_lr", true);
     enable_recording_ =
         this->declare_parameter<bool>("enable_recording", false);
-    align_depth_ = this->declare_parameter<bool>("align_depth", false);
+    align_depth_ = this->declare_parameter<bool>("align_depth", true);
   }
 
   virtual void declare_basic_params() {
