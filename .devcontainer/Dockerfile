@@ -5,7 +5,7 @@ FROM althack/ros2:galactic-dev
 ARG WORKSPACE
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-   && apt-get -y install --no-install-recommends libusb-1.0-0-dev libopencv-dev zsh \
+   && apt-get -y install --no-install-recommends libusb-1.0-0-dev libopencv-dev wget zsh \
    #
    # Clean up
    && apt-get autoremove -y \
