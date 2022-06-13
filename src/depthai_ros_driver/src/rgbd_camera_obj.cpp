@@ -52,6 +52,7 @@ void RGBDCamera::setup_pipeline() {
   if (enable_recording_)
     setup_recording();
   setup_all_xout_streams();
+  setup_control_config_xin();
   start_the_device();
   setup_all_queues();
 }
