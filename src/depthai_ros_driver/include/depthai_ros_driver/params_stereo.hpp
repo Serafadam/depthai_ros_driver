@@ -41,7 +41,7 @@ struct StereoInitConfig {
   int stereo_conf_threshold;
   bool subpixel;
   bool extended_disp;
-  bool rectify_edge_fill_color;
+  int rectify_edge_fill_color;
   bool enable_speckle_filter;
   uint32_t speckle_range;
   bool enable_temporal_filter;
@@ -122,7 +122,7 @@ public:
       } else if (p.get_name() == param_names_.extended_disp) {
         init_config_.extended_disp = p.get_value<bool>();
       } else if (p.get_name() == param_names_.rectify_edge_fill_color) {
-        init_config_.rectify_edge_fill_color = p.get_value<bool>();
+        init_config_.rectify_edge_fill_color = p.get_value<int>();
       } else if (p.get_name() == param_names_.enable_speckle_filter) {
         init_config_.enable_speckle_filter = p.get_value<bool>();
       } else if (p.get_name() == param_names_.speckle_range) {

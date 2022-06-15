@@ -82,6 +82,7 @@ public:
   virtual ~BaseCamera() {}
   virtual void on_configure() {}
 
+  void create_pipeline();
   virtual void start_the_device();
   virtual void setup_control_config_xin();
   virtual void setup_rgb();

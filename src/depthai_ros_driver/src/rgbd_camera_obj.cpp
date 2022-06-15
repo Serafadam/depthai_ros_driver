@@ -46,12 +46,14 @@ void RGBDCamera::on_configure() {
 }
 
 void RGBDCamera::setup_pipeline() {
+  create_pipeline();
   setup_rgb();
   setup_stereo();
   setup_all_xout_streams();
   setup_control_config_xin();
   start_the_device();
   setup_all_queues();
+  RCLCPP_INFO(this->get_logger(), "RGBD Camera ready.");
 }
 
 void RGBDCamera::setup_publishers() {}
