@@ -24,8 +24,8 @@ include_directories(include)
 ament_auto_add_library(
   ${PROJECT_NAME} SHARED
   src/rgbd_camera_obj.cpp
-  src/mobilenet_camera_obj.cpp
-  src/segmentation_camera_obj.cpp
+  #src/mobilenet_camera_obj.cpp
+  #src/segmentation_camera_obj.cpp
 )
 
 ament_target_dependencies(${PROJECT_NAME} ${DEPENDENCIES})

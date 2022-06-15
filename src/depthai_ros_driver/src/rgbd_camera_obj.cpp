@@ -41,16 +41,13 @@ RGBDCamera::RGBDCamera(const rclcpp::NodeOptions &options)
 }
 
 void RGBDCamera::on_configure() {
-  declare_basic_params();
+  declare_rgb_depth_params();
   setup_pipeline();
 }
 
 void RGBDCamera::setup_pipeline() {
-  pipeline_ = std::make_unique<dai::Pipeline>();
   setup_rgb();
   setup_stereo();
-  if (enable_recording_)
-    setup_recording();
   setup_all_xout_streams();
   setup_control_config_xin();
   start_the_device();
@@ -59,20 +56,9 @@ void RGBDCamera::setup_pipeline() {
 
 void RGBDCamera::setup_publishers() {}
 void RGBDCamera::depth_cb(const std::string &name,
-                          const std::shared_ptr<dai::ADatatype> &data) {
-  auto depth_in = std::dynamic_pointer_cast<dai::ImgFrame>(data);
-  cv::Mat depth_frame = depth_in->getCvFrame();
-
-  publish_img(depth_frame, sensor_msgs::image_encodings::TYPE_16UC1,
-              depth_info_, depth_pub_);
-}
+                          const std::shared_ptr<dai::ADatatype> &data) {}
 void RGBDCamera::rgb_cb(const std::string &name,
-                        const std::shared_ptr<dai::ADatatype> &data) {
-  auto rgb_in = std::dynamic_pointer_cast<dai::ImgFrame>(data);
-  cv::Mat rgb_frame = rgb_in->getCvFrame();
-  publish_img(rgb_frame, sensor_msgs::image_encodings::BGR8, rgb_info_,
-              image_pub_);
-}
+                        const std::shared_ptr<dai::ADatatype> &data) {}
 void RGBDCamera::timer_cb() {}
 } // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
