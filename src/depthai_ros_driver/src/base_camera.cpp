@@ -29,6 +29,8 @@
 #include "depthai_ros_driver/params_rgb.hpp"
 #include "depthai_ros_driver/params_stereo.hpp"
 #include "image_transport/camera_publisher.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
+#include "rclcpp/logging.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 
@@ -62,13 +64,18 @@ void BaseCamera::setup_control_config_xin() {
   xin_config_->out.link(camrgb_->inputConfig);
 }
 void BaseCamera::setup_rgb() {
-  RCLCPP_INFO(this->get_logger(), "Creating RGB cam object");
+  RCLCPP_INFO(this->get_logger(), "Creating RGB cam.");
   camrgb_ = pipeline_->create<dai::node::ColorCamera>();
   auto pn = rgb_params_->get_param_names();
+  RCLCPP_INFO(this->get_logger(), "Setting initial config.");
   rgb_params_->set_init_config(this->get_parameters(pn.name_vector));
+  RCLCPP_INFO(this->get_logger(), "Setting runtime config.");
+  rgb_params_->set_runtime_config(this->get_parameters(pn.name_vector));
   rgb_params_->setup_rgb(camrgb_, this->get_logger());
+  RCLCPP_INFO(this->get_logger(), "Created.");
 }
 void BaseCamera::setup_stereo() {
+  RCLCPP_INFO(this->get_logger(), "Creating stereo cam.");
   mono_left_ = pipeline_->create<dai::node::MonoCamera>();
   mono_right_ = pipeline_->create<dai::node::MonoCamera>();
   stereo_ = pipeline_->create<dai::node::StereoDepth>();
@@ -81,6 +88,7 @@ void BaseCamera::setup_stereo() {
                                this->get_logger());
   mono_left_->out.link(stereo_->left);
   mono_right_->out.link(stereo_->right);
+  RCLCPP_INFO(this->get_logger(), "Created.");
 }
 void BaseCamera::trig_rec_cb(
     const std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
@@ -153,10 +161,10 @@ void BaseCamera::setup_all_xout_streams() {
     setup_record_xout();
   }
 }
-sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
-                                           const char *encoding,
-                                           const std::string &frame_id,
-                                           rclcpp::Time stamp) {
+sensor_msgs::msg::Image
+BaseCamera::convert_img_to_ros(const cv::Mat &frame, const char *encoding,
+                               const std::string &frame_id,
+                               rclcpp::Time stamp) {
   cv_bridge::CvImage img_bridge;
   sensor_msgs::msg::Image img_msg;
   std_msgs::msg::Header header;
@@ -166,10 +174,10 @@ sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
   img_msg.header.frame_id = frame_id;
   return img_msg;
 }
-void publish_img(const cv::Mat &img, const char *encoding,
-                 sensor_msgs::msg::CameraInfo &info,
-                 const image_transport::CameraPublisher &pub,
-                 rclcpp::Time stamp) {
+void BaseCamera::publish_img(const cv::Mat &img, const char *encoding,
+                             sensor_msgs::msg::CameraInfo &info,
+                             const image_transport::CameraPublisher &pub,
+                             rclcpp::Time stamp) {
   info.header.stamp = stamp;
   pub.publish(convert_img_to_ros(img, encoding, info.header.frame_id,
                                  info.header.stamp),
@@ -273,6 +281,9 @@ BaseCamera::parameter_cb(const std::vector<rclcpp::Parameter> &params) {
   rgb_params_->set_runtime_config(params);
   auto ctrl = rgb_params_->get_rgb_control();
   control_q_->send(ctrl);
+  rcl_interfaces::msg::SetParametersResult res;
+  res.successful = true;
+  return res;
 }
 void BaseCamera::setup_config_q() {
   config_q_ = device_->getInputQueue(config_q_name_);

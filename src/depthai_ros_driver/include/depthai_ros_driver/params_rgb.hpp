@@ -20,6 +20,8 @@
 #ifndef DEPTHAI_ROS_DRIVER__PARAMS_RGB_HPP
 #define DEPTHAI_ROS_DRIVER__PARAMS_RGB_HPP
 #include <memory>
+#include <rclcpp/logger.hpp>
+#include <sstream>
 
 #include "depthai/pipeline/datatype/CameraControl.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
@@ -100,11 +102,11 @@ public:
   }
   void set_runtime_config(const std::vector<rclcpp::Parameter> &params) {
     for (const auto &p : params) {
-      if (p.get_name() == "s_set_man_exposure") {
+      if (p.get_name() == param_names_.set_man_exposure) {
         runtime_config_.set_man_exposure = p.get_value<bool>();
-      } else if (p.get_name() == "s_rgb_exposure") {
+      } else if (p.get_name() == param_names_.rgb_exposure) {
         runtime_config_.rgb_exposure = p.get_value<int>();
-      } else if (p.get_name() == "s_rgb_iso") {
+      } else if (p.get_name() == param_names_.rgb_iso) {
         runtime_config_.rgb_iso = p.get_value<int>();
       }
     }
