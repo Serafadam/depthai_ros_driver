@@ -29,6 +29,7 @@
 #include "depthai_ros_driver/params_rgb.hpp"
 #include "depthai_ros_driver/params_stereo.hpp"
 #include "image_transport/camera_publisher.hpp"
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -66,11 +67,6 @@ void BaseCamera::setup_control_config_xin() {
 void BaseCamera::setup_rgb() {
   RCLCPP_INFO(this->get_logger(), "Creating RGB cam.");
   camrgb_ = pipeline_->create<dai::node::ColorCamera>();
-  auto pn = rgb_params_->get_param_names();
-  RCLCPP_INFO(this->get_logger(), "Setting initial config.");
-  rgb_params_->set_init_config(this->get_parameters(pn.name_vector));
-  RCLCPP_INFO(this->get_logger(), "Setting runtime config.");
-  rgb_params_->set_runtime_config(this->get_parameters(pn.name_vector));
   rgb_params_->setup_rgb(camrgb_, this->get_logger());
   RCLCPP_INFO(this->get_logger(), "Created.");
 }
@@ -82,8 +78,6 @@ void BaseCamera::setup_stereo() {
 
   mono_left_->setBoardSocket(dai::CameraBoardSocket::LEFT);
   mono_right_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-  auto pn = stereo_params_->get_param_names();
-  stereo_params_->set_init_config(this->get_parameters(pn.name_vector));
   stereo_params_->setup_stereo(stereo_, mono_left_, mono_right_,
                                this->get_logger());
   mono_left_->out.link(stereo_->left);
@@ -115,8 +109,8 @@ void BaseCamera::declare_rgb_depth_params() {
   declare_common_params();
   rgb_params_ = std::make_unique<rgb_params::RGBParams>();
   stereo_params_ = std::make_unique<stereo_params::StereoParams>();
-  declare_rgb_params();
-  declare_depth_params();
+  rgb_params_->declare_rgb_params(this);
+  stereo_params_->declare_depth_params(this);
 }
 void BaseCamera::setup_rgb_xout() {
   xout_rgb_ = pipeline_->create<dai::node::XLinkOut>();
@@ -306,44 +300,7 @@ void BaseCamera::setup_all_queues() {
   param_cb_handle_ = this->add_on_set_parameters_callback(
       std::bind(&BaseCamera::parameter_cb, this, std::placeholders::_1));
 }
-void BaseCamera::declare_depth_params() {
-  auto pn = stereo_params_->get_param_names();
-  this->declare_parameter<double>(pn.mono_fps, 60.0);
-  this->declare_parameter<std::string>(pn.mono_resolution, "400");
-  this->declare_parameter<bool>(base_param_names_.align_depth, true);
-  this->declare_parameter<bool>(pn.lr_check, true);
-  this->declare_parameter<int>(pn.lrc_threshold, 5);
-  this->declare_parameter<int>(pn.depth_filter_size, 7);
-  this->declare_parameter<int>(pn.stereo_conf_threshold, 255);
-  this->declare_parameter<bool>(pn.subpixel, true);
-  this->declare_parameter<bool>(pn.extended_disp, false);
-  this->declare_parameter<int>(pn.rectify_edge_fill_color, -1);
-  this->declare_parameter<bool>(pn.enable_speckle_filter, false);
-  this->declare_parameter<int>(pn.speckle_range, 50);
-  this->declare_parameter<bool>(pn.enable_temporal_filter, true);
-  this->declare_parameter<bool>(pn.enable_spatial_filter, true);
-  this->declare_parameter<int>(pn.hole_filling_radius, 2);
-  this->declare_parameter<int>(pn.spatial_filter_iterations, 1);
-  this->declare_parameter<int>(pn.threshold_filter_min_range, 400);
-  this->declare_parameter<int>(pn.threshold_filter_max_range, 15000);
-  this->declare_parameter<int>(pn.decimation_factor, 1);
-}
-void BaseCamera::declare_rgb_params() {
-  auto pn = rgb_params_->get_param_names();
-  this->declare_parameter<double>(pn.rgb_fps, 30.0);
-  this->declare_parameter<int>(pn.rgb_width, 1280);
-  this->declare_parameter<int>(pn.rgb_height, 720);
-  this->declare_parameter<int>(pn.preview_size, 256);
-  this->declare_parameter<std::string>(pn.rgb_resolution, "1080");
-  this->declare_parameter<bool>(pn.set_isp, true);
-  this->declare_parameter<bool>(pn.set_man_focus, true);
-  this->declare_parameter<int>(pn.man_focus, 135);
-  this->declare_parameter<bool>(pn.interleaved, false);
-  this->declare_parameter<bool>(pn.keep_preview_aspect_ratio, true);
-  this->declare_parameter<int>(pn.rgb_exposure, 1000);
-  this->declare_parameter<int>(pn.rgb_iso, 100);
-  this->declare_parameter<bool>(pn.set_man_exposure, false);
-}
+
 void BaseCamera::declare_common_params() {
   base_config_.enable_rgb =
       this->declare_parameter<bool>(base_param_names_.enable_rgb, true);
@@ -353,6 +310,8 @@ void BaseCamera::declare_common_params() {
       this->declare_parameter<bool>(base_param_names_.enable_lr, true);
   base_config_.enable_recording =
       this->declare_parameter<bool>(base_param_names_.enable_recording, false);
+  base_config_.align_depth =
+      this->declare_parameter<bool>(base_param_names_.align_depth, true);
   base_config_.max_q_size =
       this->declare_parameter<int>(base_param_names_.max_q_size, 4);
 }

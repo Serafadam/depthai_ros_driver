@@ -48,23 +48,7 @@ public:
   void on_configure() override;
 
 private:
-  image_transport::CameraPublisher image_pub_;
-  image_transport::CameraPublisher depth_pub_;
-
-  sensor_msgs::msg::CameraInfo rgb_info_;
-  sensor_msgs::msg::CameraInfo depth_info_;
-
-  void depth_cb(const std::string &name,
-                const std::shared_ptr<dai::ADatatype> &data);
-  void rgb_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
-  void timer_cb();
   void setup_pipeline() override;
-  void setup_publishers() override;
-
-  std::shared_ptr<dai::node::XLinkOut> xout_video_, xout_depth_, xout_left_,
-      xout_right_;
-  std::shared_ptr<dai::DataOutputQueue> video_q_, depth_q_, left_q_, right_q_;
 };
 
 } // namespace depthai_ros_driver

@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 
+#include "depthai/pipeline/node/IMU.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "depthai-shared/properties/StereoDepthProperties.hpp"
@@ -47,6 +48,7 @@
 #include "depthai_ros_driver/params_stereo.hpp"
 #include "image_transport/camera_publisher.hpp"
 #include "image_transport/image_transport.hpp"
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/parameter.hpp"
@@ -64,6 +66,7 @@ struct BaseCameraConfig {
   bool enable_rgb;
   bool enable_depth;
   bool enable_lr;
+  bool enable_imu;
   bool enable_recording;
   bool align_depth;
 };
@@ -72,6 +75,7 @@ struct BaseCameraParamNames {
   const std::string enable_rgb = "h_enable_rgb";
   const std::string enable_depth = "h_enable_depth";
   const std::string enable_lr = "h_enable_lr";
+  const std::string enable_imu = "h_enable_imu";
   const std::string enable_recording = "h_enable_recording";
   const std::string align_depth = "h_align_depth";
 };
@@ -90,8 +94,7 @@ public:
   void trig_rec_cb(const std_srvs::srv::Trigger::Request::SharedPtr req,
                    std_srvs::srv::Trigger::Response::SharedPtr res);
   void setup_recording();
-  virtual void declare_rgb_params();
-  virtual void declare_depth_params();
+
   virtual void declare_rgb_depth_params();
   virtual void declare_common_params();
   sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
@@ -115,6 +118,8 @@ public:
   void setup_lr_q();
   void enc_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
+  void imu_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
   void setup_recording_q();
   void setup_control_q();
   rcl_interfaces::msg::SetParametersResult
@@ -137,12 +142,13 @@ private:
   std::shared_ptr<dai::node::MonoCamera> mono_left_;
   std::shared_ptr<dai::node::MonoCamera> mono_right_;
   std::shared_ptr<dai::node::StereoDepth> stereo_;
+  std::shared_ptr<dai::node::IMU> imu_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_depth_, xout_left_,
-      xout_right_, xout_enc_;
+      xout_right_, xout_enc_, xout_imu_;
   std::shared_ptr<dai::node::XLinkIn> xin_config_, xin_control_;
   std::shared_ptr<dai::node::VideoEncoder> video_enc_;
   std::shared_ptr<dai::DataOutputQueue> rgb_q_, depth_q_, left_q_, right_q_,
-      enc_q_;
+      enc_q_, imu_q_;
   std::shared_ptr<dai::DataInputQueue> config_q_, control_q_;
   std::ofstream video_file_;
   std::string rgb_frame_, left_frame_, right_frame_;
@@ -161,11 +167,12 @@ private:
       "person",     "pottedplant", "sheep",   "sofa",  "train",
       "tvmonitor"};
 
-  virtual void setup_publishers() = 0;
   virtual void setup_pipeline() = 0;
   template <typename T> T get_param(const std::string &name) {
     return this->get_parameter<T>(name);
   }
+  rcl_interfaces::msg::ParameterDescriptor get_ranged_int_descriptor(int min,
+                                                                     int max);
 };
 } // namespace depthai_ros_driver
 
