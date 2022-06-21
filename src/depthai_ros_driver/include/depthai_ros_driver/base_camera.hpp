@@ -38,6 +38,7 @@
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
 #include "depthai/pipeline/datatype/StereoDepthConfig.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
+#include "depthai/pipeline/node/IMU.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/VideoEncoder.hpp"
 #include "depthai/pipeline/node/XLinkIn.hpp"
@@ -47,6 +48,7 @@
 #include "depthai_ros_driver/params_stereo.hpp"
 #include "image_transport/camera_publisher.hpp"
 #include "image_transport/image_transport.hpp"
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/parameter.hpp"
@@ -56,6 +58,7 @@
 #include "sensor_msgs/image_encodings.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
 namespace depthai_ros_driver {
@@ -64,6 +67,7 @@ struct BaseCameraConfig {
   bool enable_rgb;
   bool enable_depth;
   bool enable_lr;
+  bool enable_imu;
   bool enable_recording;
   bool align_depth;
 };
@@ -72,6 +76,7 @@ struct BaseCameraParamNames {
   const std::string enable_rgb = "h_enable_rgb";
   const std::string enable_depth = "h_enable_depth";
   const std::string enable_lr = "h_enable_lr";
+  const std::string enable_imu = "h_enable_imu";
   const std::string enable_recording = "h_enable_recording";
   const std::string align_depth = "h_align_depth";
 };
@@ -86,12 +91,12 @@ public:
   virtual void start_the_device();
   virtual void setup_control_config_xin();
   virtual void setup_rgb();
+  virtual void setup_imu();
   virtual void setup_stereo();
   void trig_rec_cb(const std_srvs::srv::Trigger::Request::SharedPtr req,
                    std_srvs::srv::Trigger::Response::SharedPtr res);
   void setup_recording();
-  virtual void declare_rgb_params();
-  virtual void declare_depth_params();
+
   virtual void declare_rgb_depth_params();
   virtual void declare_common_params();
   sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
@@ -106,14 +111,18 @@ public:
   void setup_rgb_xout();
   void setup_depth_xout();
   void setup_lr_xout();
+  void setup_imu_xout();
   void setup_record_xout();
   void setup_all_xout_streams();
   void regular_queue_cb(const std::string &name,
                         const std::shared_ptr<dai::ADatatype> &data);
   void enable_rgb_q();
   void enable_depth_q();
+  void setup_imu_q();
   void setup_lr_q();
   void enc_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
+  void imu_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
   void setup_recording_q();
   void setup_control_q();
@@ -126,6 +135,7 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr trigger_recording_srv_;
   OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
   image_transport::CameraPublisher rgb_pub_, depth_pub_, left_pub_, right_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
   sensor_msgs::msg::CameraInfo rgb_info_, depth_info_, left_info_, right_info_;
   std::unique_ptr<rgb_params::RGBParams> rgb_params_;
   std::unique_ptr<stereo_params::StereoParams> stereo_params_;
@@ -137,12 +147,13 @@ private:
   std::shared_ptr<dai::node::MonoCamera> mono_left_;
   std::shared_ptr<dai::node::MonoCamera> mono_right_;
   std::shared_ptr<dai::node::StereoDepth> stereo_;
+  std::shared_ptr<dai::node::IMU> imu_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_depth_, xout_left_,
-      xout_right_, xout_enc_;
+      xout_right_, xout_enc_, xout_imu_;
   std::shared_ptr<dai::node::XLinkIn> xin_config_, xin_control_;
   std::shared_ptr<dai::node::VideoEncoder> video_enc_;
   std::shared_ptr<dai::DataOutputQueue> rgb_q_, depth_q_, left_q_, right_q_,
-      enc_q_;
+      enc_q_, imu_q_;
   std::shared_ptr<dai::DataInputQueue> config_q_, control_q_;
   std::ofstream video_file_;
   std::string rgb_frame_, left_frame_, right_frame_;
@@ -150,6 +161,7 @@ private:
   const std::string depth_q_name_ = "depth";
   const std::string left_q_name_ = "left";
   const std::string right_q_name_ = "right";
+  const std::string imu_q_name_ = "imu";
   const std::string video_enc_q_name_ = "h265";
   const std::string control_q_name_ = "control";
   const std::string config_q_name_ = "config";
@@ -161,11 +173,12 @@ private:
       "person",     "pottedplant", "sheep",   "sofa",  "train",
       "tvmonitor"};
 
-  virtual void setup_publishers() = 0;
   virtual void setup_pipeline() = 0;
   template <typename T> T get_param(const std::string &name) {
     return this->get_parameter<T>(name);
   }
+  rcl_interfaces::msg::ParameterDescriptor get_ranged_int_descriptor(int min,
+                                                                     int max);
 };
 } // namespace depthai_ros_driver
 

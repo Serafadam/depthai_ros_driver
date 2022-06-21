@@ -56,12 +56,6 @@ void RGBDCamera::setup_pipeline() {
   RCLCPP_INFO(this->get_logger(), "RGBD Camera ready.");
 }
 
-void RGBDCamera::setup_publishers() {}
-void RGBDCamera::depth_cb(const std::string &name,
-                          const std::shared_ptr<dai::ADatatype> &data) {}
-void RGBDCamera::rgb_cb(const std::string &name,
-                        const std::shared_ptr<dai::ADatatype> &data) {}
-void RGBDCamera::timer_cb() {}
 } // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::RGBDCamera);

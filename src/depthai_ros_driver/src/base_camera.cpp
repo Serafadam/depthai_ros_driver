@@ -21,6 +21,9 @@
 #include "cv_bridge/cv_bridge.h"
 
 #include <cstdint>
+#include <depthai/pipeline/datatype/IMUData.hpp>
+#include <depthai/pipeline/node/IMU.hpp>
+#include <depthai/pipeline/node/XLinkOut.hpp>
 #include <memory>
 
 #include "depthai/pipeline/Pipeline.hpp"
@@ -29,6 +32,7 @@
 #include "depthai_ros_driver/params_rgb.hpp"
 #include "depthai_ros_driver/params_stereo.hpp"
 #include "image_transport/camera_publisher.hpp"
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -66,13 +70,17 @@ void BaseCamera::setup_control_config_xin() {
 void BaseCamera::setup_rgb() {
   RCLCPP_INFO(this->get_logger(), "Creating RGB cam.");
   camrgb_ = pipeline_->create<dai::node::ColorCamera>();
-  auto pn = rgb_params_->get_param_names();
-  RCLCPP_INFO(this->get_logger(), "Setting initial config.");
-  rgb_params_->set_init_config(this->get_parameters(pn.name_vector));
-  RCLCPP_INFO(this->get_logger(), "Setting runtime config.");
-  rgb_params_->set_runtime_config(this->get_parameters(pn.name_vector));
   rgb_params_->setup_rgb(camrgb_, this->get_logger());
   RCLCPP_INFO(this->get_logger(), "Created.");
+}
+void BaseCamera::setup_imu() {
+  RCLCPP_INFO(this->get_logger(), "Creating IMU node.");
+  imu_ = pipeline_->create<dai::node::IMU>();
+  imu_->enableIMUSensor(dai::IMUSensor::ACCELEROMETER_RAW, 500);
+  imu_->enableIMUSensor(dai::IMUSensor::GYROSCOPE_RAW, 400);
+  imu_->enableIMUSensor(dai::IMUSensor::ROTATION_VECTOR, 400);
+  imu_->setBatchReportThreshold(1);
+  imu_->setMaxBatchReports(10);
 }
 void BaseCamera::setup_stereo() {
   RCLCPP_INFO(this->get_logger(), "Creating stereo cam.");
@@ -82,8 +90,6 @@ void BaseCamera::setup_stereo() {
 
   mono_left_->setBoardSocket(dai::CameraBoardSocket::LEFT);
   mono_right_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-  auto pn = stereo_params_->get_param_names();
-  stereo_params_->set_init_config(this->get_parameters(pn.name_vector));
   stereo_params_->setup_stereo(stereo_, mono_left_, mono_right_,
                                this->get_logger());
   mono_left_->out.link(stereo_->left);
@@ -115,8 +121,8 @@ void BaseCamera::declare_rgb_depth_params() {
   declare_common_params();
   rgb_params_ = std::make_unique<rgb_params::RGBParams>();
   stereo_params_ = std::make_unique<stereo_params::StereoParams>();
-  declare_rgb_params();
-  declare_depth_params();
+  rgb_params_->declare_rgb_params(this);
+  stereo_params_->declare_depth_params(this);
 }
 void BaseCamera::setup_rgb_xout() {
   xout_rgb_ = pipeline_->create<dai::node::XLinkOut>();
@@ -143,6 +149,11 @@ void BaseCamera::setup_record_xout() {
   camrgb_->video.link(video_enc_->input);
   video_enc_->bitstream.link(xout_enc_->input);
 }
+void BaseCamera::setup_imu_xout() {
+  xout_imu_ = pipeline_->create<dai::node::XLinkOut>();
+  xout_imu_->setStreamName(imu_q_name_);
+  imu_->out.link(xout_imu_->input);
+}
 void BaseCamera::setup_all_xout_streams() {
   if (base_config_.enable_rgb) {
     RCLCPP_INFO(this->get_logger(), "Enabling rgb pub.");
@@ -159,6 +170,10 @@ void BaseCamera::setup_all_xout_streams() {
   if (base_config_.enable_recording) {
     RCLCPP_INFO(this->get_logger(), "Enabling recording.");
     setup_record_xout();
+  }
+  if (base_config_.enable_imu) {
+    RCLCPP_INFO(this->get_logger(), "Enabling IMU");
+    setup_imu_xout();
   }
 }
 sensor_msgs::msg::Image
@@ -201,6 +216,31 @@ void BaseCamera::regular_queue_cb(const std::string &name,
   } else if (name == right_q_name_) {
     publish_img(cv_frame, sensor_msgs::image_encodings::MONO8, right_info_,
                 right_pub_, curr_time);
+  }
+}
+void BaseCamera::imu_cb(const std::string &name,
+                        const std::shared_ptr<dai::ADatatype> &data) {
+  auto imu_data = std::dynamic_pointer_cast<dai::IMUData>(data);
+  auto packets = imu_data->packets;
+  for (const auto &packet : packets) {
+    auto accel = packet.acceleroMeter;
+    auto gyro = packet.gyroscope;
+    auto rot = packet.rotationVector;
+    sensor_msgs::msg::Imu imu_msg;
+    imu_msg.linear_acceleration.x = accel.x;
+    imu_msg.linear_acceleration.y = accel.y;
+    imu_msg.linear_acceleration.z = accel.z;
+    imu_msg.angular_velocity.x = gyro.x;
+    imu_msg.angular_velocity.y = gyro.y;
+    imu_msg.angular_velocity.z = gyro.z;
+    imu_msg.header.frame_id = "camera_link";
+    imu_msg.header.stamp = this->get_clock()->now();
+    imu_msg.orientation.x = rot.i;
+    imu_msg.orientation.y = rot.j;
+    imu_msg.orientation.z = rot.k;
+    imu_msg.orientation.w = rot.real;
+    // TODO: add covariances
+    imu_pub_->publish(imu_msg);
   }
 }
 void BaseCamera::enable_rgb_q() {
@@ -247,6 +287,12 @@ void BaseCamera::setup_lr_q() {
   right_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
                                   std::placeholders::_1,
                                   std::placeholders::_2));
+}
+void BaseCamera::setup_imu_q() {
+  imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("~/imu", 10);
+  imu_q_ = device_->getOutputQueue(imu_q_name_, base_config_.max_q_size, false);
+  imu_q_->addCallback(std::bind(&BaseCamera::imu_cb, this,
+                                std::placeholders::_1, std::placeholders::_2));
 }
 void BaseCamera::enc_cb(const std::string &name,
                         const std::shared_ptr<dai::ADatatype> &data) {
@@ -306,44 +352,7 @@ void BaseCamera::setup_all_queues() {
   param_cb_handle_ = this->add_on_set_parameters_callback(
       std::bind(&BaseCamera::parameter_cb, this, std::placeholders::_1));
 }
-void BaseCamera::declare_depth_params() {
-  auto pn = stereo_params_->get_param_names();
-  this->declare_parameter<double>(pn.mono_fps, 60.0);
-  this->declare_parameter<std::string>(pn.mono_resolution, "400");
-  this->declare_parameter<bool>(base_param_names_.align_depth, true);
-  this->declare_parameter<bool>(pn.lr_check, true);
-  this->declare_parameter<int>(pn.lrc_threshold, 5);
-  this->declare_parameter<int>(pn.depth_filter_size, 7);
-  this->declare_parameter<int>(pn.stereo_conf_threshold, 255);
-  this->declare_parameter<bool>(pn.subpixel, true);
-  this->declare_parameter<bool>(pn.extended_disp, false);
-  this->declare_parameter<int>(pn.rectify_edge_fill_color, -1);
-  this->declare_parameter<bool>(pn.enable_speckle_filter, false);
-  this->declare_parameter<int>(pn.speckle_range, 50);
-  this->declare_parameter<bool>(pn.enable_temporal_filter, true);
-  this->declare_parameter<bool>(pn.enable_spatial_filter, true);
-  this->declare_parameter<int>(pn.hole_filling_radius, 2);
-  this->declare_parameter<int>(pn.spatial_filter_iterations, 1);
-  this->declare_parameter<int>(pn.threshold_filter_min_range, 400);
-  this->declare_parameter<int>(pn.threshold_filter_max_range, 15000);
-  this->declare_parameter<int>(pn.decimation_factor, 1);
-}
-void BaseCamera::declare_rgb_params() {
-  auto pn = rgb_params_->get_param_names();
-  this->declare_parameter<double>(pn.rgb_fps, 30.0);
-  this->declare_parameter<int>(pn.rgb_width, 1280);
-  this->declare_parameter<int>(pn.rgb_height, 720);
-  this->declare_parameter<int>(pn.preview_size, 256);
-  this->declare_parameter<std::string>(pn.rgb_resolution, "1080");
-  this->declare_parameter<bool>(pn.set_isp, true);
-  this->declare_parameter<bool>(pn.set_man_focus, true);
-  this->declare_parameter<int>(pn.man_focus, 135);
-  this->declare_parameter<bool>(pn.interleaved, false);
-  this->declare_parameter<bool>(pn.keep_preview_aspect_ratio, true);
-  this->declare_parameter<int>(pn.rgb_exposure, 1000);
-  this->declare_parameter<int>(pn.rgb_iso, 100);
-  this->declare_parameter<bool>(pn.set_man_exposure, false);
-}
+
 void BaseCamera::declare_common_params() {
   base_config_.enable_rgb =
       this->declare_parameter<bool>(base_param_names_.enable_rgb, true);
@@ -351,8 +360,12 @@ void BaseCamera::declare_common_params() {
       this->declare_parameter<bool>(base_param_names_.enable_depth, true);
   base_config_.enable_lr =
       this->declare_parameter<bool>(base_param_names_.enable_lr, true);
+  base_config_.enable_imu =
+      this->declare_parameter<bool>(base_param_names_.enable_imu, false);
   base_config_.enable_recording =
       this->declare_parameter<bool>(base_param_names_.enable_recording, false);
+  base_config_.align_depth =
+      this->declare_parameter<bool>(base_param_names_.align_depth, true);
   base_config_.max_q_size =
       this->declare_parameter<int>(base_param_names_.max_q_size, 4);
 }

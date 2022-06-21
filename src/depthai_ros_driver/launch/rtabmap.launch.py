@@ -2,9 +2,8 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
@@ -17,6 +16,7 @@ def generate_launch_description():
             "frame_id": "camera_link",
             "subscribe_depth": True,
             "approx_sync": True,
+            "Rtabmap/DetectionRate": "15.5",
         }
     ]
     remappings = [
@@ -47,6 +47,11 @@ def generate_launch_description():
                 output="screen",
                 parameters=parameters,
                 remappings=remappings,
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(depthai_prefix, "launch", "description.launch.py")
+                )
             ),
             ComposableNodeContainer(
                 name="container",
