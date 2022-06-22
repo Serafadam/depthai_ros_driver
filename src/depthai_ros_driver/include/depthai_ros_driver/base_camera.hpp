@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 
+#include "depthai/pipeline/node/IMU.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "depthai-shared/properties/StereoDepthProperties.hpp"
