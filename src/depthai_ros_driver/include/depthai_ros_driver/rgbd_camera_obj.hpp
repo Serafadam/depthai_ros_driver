@@ -48,7 +48,6 @@ public:
   void on_configure() override;
 
 private:
-  void setup_pipeline() override;
 };
 
 } // namespace depthai_ros_driver

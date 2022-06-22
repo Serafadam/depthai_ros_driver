@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 
-#include "depthai/pipeline/node/IMU.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "depthai-shared/properties/StereoDepthProperties.hpp"
@@ -91,6 +90,7 @@ public:
   void create_pipeline();
   virtual void start_the_device();
   virtual void setup_control_config_xin();
+  virtual void setup_basic_devices();
   virtual void setup_rgb();
   virtual void setup_imu();
   virtual void setup_stereo();
@@ -174,7 +174,6 @@ private:
       "person",     "pottedplant", "sheep",   "sofa",  "train",
       "tvmonitor"};
 
-  virtual void setup_pipeline() = 0;
   template <typename T> T get_param(const std::string &name) {
     return this->get_parameter<T>(name);
   }

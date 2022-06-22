@@ -21,13 +21,13 @@
 #include "cv_bridge/cv_bridge.h"
 
 #include <cstdint>
-#include <depthai/pipeline/datatype/IMUData.hpp>
-#include <depthai/pipeline/node/IMU.hpp>
-#include <depthai/pipeline/node/XLinkOut.hpp>
 #include <memory>
 
 #include "depthai/pipeline/Pipeline.hpp"
+#include "depthai/pipeline/datatype/IMUData.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
+#include "depthai/pipeline/node/IMU.hpp"
+#include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
 #include "depthai_ros_driver/params_rgb.hpp"
 #include "depthai_ros_driver/params_stereo.hpp"
@@ -42,7 +42,10 @@ namespace depthai_ros_driver {
 BaseCamera::BaseCamera(
     const std::string &name,
     const rclcpp::NodeOptions &options = rclcpp::NodeOptions())
-    : rclcpp::Node(name, options) {}
+    : rclcpp::Node(name, options) {
+  pipeline_ = std::make_unique<dai::Pipeline>();
+  declare_rgb_depth_params();
+}
 void BaseCamera::create_pipeline() {
   pipeline_ = std::make_unique<dai::Pipeline>();
 }
@@ -67,6 +70,20 @@ void BaseCamera::setup_control_config_xin() {
   xin_control_->out.link(camrgb_->inputControl);
   xin_config_->out.link(camrgb_->inputConfig);
 }
+void BaseCamera::setup_basic_devices() {
+  if (base_config_.enable_rgb) {
+    setup_rgb();
+  }
+  if (base_config_.enable_depth || base_config_.enable_lr) {
+    setup_stereo();
+  }
+  if (base_config_.enable_recording) {
+    setup_recording();
+  }
+  if (base_config_.enable_imu) {
+    setup_imu();
+  }
+}
 void BaseCamera::setup_rgb() {
   RCLCPP_INFO(this->get_logger(), "Creating RGB cam.");
   camrgb_ = pipeline_->create<dai::node::ColorCamera>();
@@ -76,7 +93,7 @@ void BaseCamera::setup_rgb() {
 void BaseCamera::setup_imu() {
   RCLCPP_INFO(this->get_logger(), "Creating IMU node.");
   imu_ = pipeline_->create<dai::node::IMU>();
-  imu_->enableIMUSensor(dai::IMUSensor::ACCELEROMETER_RAW, 500);
+  imu_->enableIMUSensor(dai::IMUSensor::ACCELEROMETER_RAW, 400);
   imu_->enableIMUSensor(dai::IMUSensor::GYROSCOPE_RAW, 400);
   imu_->enableIMUSensor(dai::IMUSensor::ROTATION_VECTOR, 400);
   imu_->setBatchReportThreshold(1);
@@ -346,6 +363,9 @@ void BaseCamera::setup_all_queues() {
   }
   if (base_config_.enable_recording) {
     setup_recording_q();
+  }
+  if (base_config_.enable_imu) {
+    setup_imu_q();
   }
   setup_control_q();
   setup_config_q();
