@@ -306,7 +306,7 @@ void BaseCamera::setup_lr_q() {
                                   std::placeholders::_2));
 }
 void BaseCamera::setup_imu_q() {
-  imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("~/imu", 10);
+  imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("~/imu/data", 10);
   imu_q_ = device_->getOutputQueue(imu_q_name_, base_config_.max_q_size, false);
   imu_q_->addCallback(std::bind(&BaseCamera::imu_cb, this,
                                 std::placeholders::_1, std::placeholders::_2));
@@ -381,7 +381,7 @@ void BaseCamera::declare_common_params() {
   base_config_.enable_lr =
       this->declare_parameter<bool>(base_param_names_.enable_lr, true);
   base_config_.enable_imu =
-      this->declare_parameter<bool>(base_param_names_.enable_imu, false);
+      this->declare_parameter<bool>(base_param_names_.enable_imu, true);
   base_config_.enable_recording =
       this->declare_parameter<bool>(base_param_names_.enable_recording, false);
   base_config_.align_depth =
