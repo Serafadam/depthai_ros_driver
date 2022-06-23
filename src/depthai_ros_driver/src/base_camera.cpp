@@ -256,7 +256,20 @@ void BaseCamera::imu_cb(const std::string &name,
     imu_msg.orientation.y = rot.j;
     imu_msg.orientation.z = rot.k;
     imu_msg.orientation.w = rot.real;
-    // TODO: add covariances
+    // this is based on covariances from BNO055, here we have BNO086, but I'm
+    // not sure whether those will differ
+    // Source:
+    // https://github.com/Vijfendertig/rosserial_adafruit_bno055/blob/532b63db9b0e5e5e9217bd89905001fe979df3a4/src/imu_publisher/imu_publisher.cpp#L42.
+    for (unsigned row = 0; row < 3; ++row) {
+      for (unsigned col = 0; col < 3; ++col) {
+        imu_msg.orientation_covariance[row * 3 + col] =
+            (row == col ? 0.002 : 0.); // +-2.5deg
+        imu_msg.angular_velocity_covariance[row * 3 + col] =
+            (row == col ? 0.003 : 0.); // +-3deg/s
+        imu_msg.linear_acceleration_covariance[row * 3 + col] =
+            (row == col ? 0.60 : 0.); // +-80mg
+      }
+    }
     imu_pub_->publish(imu_msg);
   }
 }
