@@ -68,7 +68,7 @@ void MobilenetCamera::setup_pipeline() {
 
   nn_->out.link(xout_nn_->input);
 
-  start_the_device();
+  start_device();
   setup_all_queues();
   detection_nn_q_ = device_->getOutputQueue("nn", max_q_size_, false);
   detection_nn_q_->addCallback(std::bind(&MobilenetCamera::det_cb, this,

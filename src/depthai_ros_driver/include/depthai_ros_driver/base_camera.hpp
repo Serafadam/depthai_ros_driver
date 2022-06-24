@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <std_srvs/srv/detail/trigger__struct.hpp>
 #include <string>
 #include <vector>
 
@@ -81,6 +82,8 @@ struct BaseCameraParamNames {
   const std::string align_depth = "h_align_depth";
 };
 class BaseCamera : public rclcpp::Node {
+  using Trigger = std_srvs::srv::Trigger;
+
 public:
   explicit BaseCamera(const std::string &name,
                       const rclcpp::NodeOptions &options);
@@ -88,14 +91,22 @@ public:
   virtual void on_configure() {}
 
   void create_pipeline();
-  virtual void start_the_device();
+  virtual void start_device();
+  virtual void shutdown_device();
+  virtual void restart_device();
   virtual void setup_control_config_xin();
   virtual void setup_basic_devices();
   virtual void setup_rgb();
   virtual void setup_imu();
   virtual void setup_stereo();
-  void trig_rec_cb(const std_srvs::srv::Trigger::Request::SharedPtr req,
-                   std_srvs::srv::Trigger::Response::SharedPtr res);
+  void start_cb(const Trigger::Request::SharedPtr req,
+                Trigger::Response::SharedPtr res);
+  void shutdown_cb(const Trigger::Request::SharedPtr req,
+                   Trigger::Response::SharedPtr res);
+  void restart_cb(const Trigger::Request::SharedPtr req,
+                  Trigger::Response::SharedPtr res);
+  void trig_rec_cb(const Trigger::Request::SharedPtr req,
+                   Trigger::Response::SharedPtr res);
   void setup_recording();
 
   virtual void declare_rgb_depth_params();
@@ -133,7 +144,8 @@ public:
   void setup_all_queues();
 
 private:
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr trigger_recording_srv_;
+  rclcpp::Service<Trigger>::SharedPtr trigger_recording_srv_, restart_cam_srv_,
+      start_cam_srv_, shutdown_cam_srv_;
   OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
   image_transport::CameraPublisher rgb_pub_, depth_pub_, left_pub_, right_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
@@ -166,7 +178,7 @@ private:
   const std::string video_enc_q_name_ = "h265";
   const std::string control_q_name_ = "control";
   const std::string config_q_name_ = "config";
-  std::atomic<bool> record_, started_recording_;
+  std::atomic<bool> record_, started_recording_, cam_running_;
   const std::vector<std::string> default_label_map_ = {
       "background", "aeroplane",   "bicycle", "bird",  "boat",
       "bottle",     "bus",         "car",     "cat",   "chair",

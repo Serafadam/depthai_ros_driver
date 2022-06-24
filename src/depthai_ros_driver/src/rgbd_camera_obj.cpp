@@ -44,7 +44,7 @@ void RGBDCamera::on_configure() {
   setup_basic_devices();
   setup_all_xout_streams();
   setup_control_config_xin();
-  start_the_device();
+  start_device();
   setup_all_queues();
   RCLCPP_INFO(this->get_logger(), "RGBD Camera ready.");
 }

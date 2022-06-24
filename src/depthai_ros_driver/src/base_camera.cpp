@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "depthai/device/DeviceBase.hpp"
 #include "depthai/pipeline/Pipeline.hpp"
 #include "depthai/pipeline/datatype/IMUData.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
@@ -37,19 +38,68 @@
 #include "rclcpp/logging.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 namespace depthai_ros_driver {
 BaseCamera::BaseCamera(
     const std::string &name,
     const rclcpp::NodeOptions &options = rclcpp::NodeOptions())
     : rclcpp::Node(name, options) {
+  cam_running_ = false;
   pipeline_ = std::make_unique<dai::Pipeline>();
   declare_rgb_depth_params();
+  start_cam_srv_ = this->create_service<Trigger>(
+      "~/start_camera",
+      std::bind(&BaseCamera::start_cb, this, std::placeholders::_1,
+                std::placeholders::_2));
+  shutdown_cam_srv_ = this->create_service<Trigger>(
+      "~/shutdown_camera",
+      std::bind(&BaseCamera::shutdown_cb, this, std::placeholders::_1,
+                std::placeholders::_2));
+
+  restart_cam_srv_ = this->create_service<Trigger>(
+      "~/restart_camera",
+      std::bind(&BaseCamera::restart_cb, this, std::placeholders::_1,
+                std::placeholders::_2));
+}
+void BaseCamera::restart_cb(const Trigger::Request::SharedPtr req,
+                            Trigger::Response::SharedPtr res) {
+  restart_device();
+  res->success = true;
+}
+void BaseCamera::start_cb(const Trigger::Request::SharedPtr req,
+                          Trigger::Response::SharedPtr res) {
+  if (cam_running_) {
+    RCLCPP_INFO(this->get_logger(), "Camera already running.");
+    return;
+  }
+  start_device();
+  setup_all_queues();
+  res->success = true;
+  cam_running_ = true;
+}
+void BaseCamera::shutdown_cb(const Trigger::Request::SharedPtr req,
+                             Trigger::Response::SharedPtr res) {
+  RCLCPP_INFO(this->get_logger(), "Shutting down camera");
+  if (!cam_running_) {
+    RCLCPP_INFO(this->get_logger(), "Camera already shut down.");
+    return;
+  }
+
+  shutdown_device();
+  res->success = true;
+  cam_running_ = false;
+}
+void BaseCamera::shutdown_device() { device_.reset(); }
+void BaseCamera::restart_device() {
+  shutdown_device();
+  start_device();
+  setup_all_queues();
 }
 void BaseCamera::create_pipeline() {
   pipeline_ = std::make_unique<dai::Pipeline>();
 }
-void BaseCamera::start_the_device() {
+void BaseCamera::start_device() {
   bool cam_setup = false;
   while (!cam_setup) {
     try {
@@ -60,6 +110,7 @@ void BaseCamera::start_the_device() {
       RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
     }
   }
+  cam_running_ = true;
   RCLCPP_INFO(this->get_logger(), "Camera connected!");
 }
 void BaseCamera::setup_control_config_xin() {
@@ -113,9 +164,8 @@ void BaseCamera::setup_stereo() {
   mono_right_->out.link(stereo_->right);
   RCLCPP_INFO(this->get_logger(), "Created.");
 }
-void BaseCamera::trig_rec_cb(
-    const std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
-    std_srvs::srv::Trigger::Response::SharedPtr /*res*/) {
+void BaseCamera::trig_rec_cb(const Trigger::Request::SharedPtr /*req*/,
+                             Trigger::Response::SharedPtr /*res*/) {
   if (!record_) {
     RCLCPP_INFO(this->get_logger(), "Starting recording.");
   } else {
@@ -129,7 +179,7 @@ void BaseCamera::setup_recording() {
   video_enc_->setDefaultProfilePreset(
       rgb_params_->get_init_config().rgb_fps,
       dai::VideoEncoderProperties::Profile::H264_MAIN);
-  trigger_recording_srv_ = this->create_service<std_srvs::srv::Trigger>(
+  trigger_recording_srv_ = this->create_service<Trigger>(
       "~/trigger_recording",
       std::bind(&BaseCamera::trig_rec_cb, this, std::placeholders::_1,
                 std::placeholders::_2));

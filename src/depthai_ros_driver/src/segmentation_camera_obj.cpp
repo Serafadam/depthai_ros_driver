@@ -70,7 +70,7 @@ void SegmentationCamera::setup_pipeline() {
   camrgb_->preview.link(nn_->input);
 
   nn_->out.link(xout_nn_->input);
-  start_the_device();
+  start_device();
   setup_all_queues();
   segmentation_nn_q_ = device_->getOutputQueue("nn_", max_q_size_, false);
   segmentation_nn_q_->addCallback(std::bind(&SegmentationCamera::seg_cb, this,

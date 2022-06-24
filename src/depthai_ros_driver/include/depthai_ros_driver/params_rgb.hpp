@@ -19,6 +19,7 @@
 // SOFTWARE.
 #ifndef DEPTHAI_ROS_DRIVER__PARAMS_RGB_HPP
 #define DEPTHAI_ROS_DRIVER__PARAMS_RGB_HPP
+#include <cstdint>
 #include <memory>
 #include <sstream>
 
@@ -33,21 +34,23 @@ namespace depthai_ros_driver {
 namespace rgb_params {
 struct RGBInitConfig {
   double rgb_fps;
-  int preview_size;
-  int rgb_width;
-  int rgb_height;
+  uint16_t preview_size;
+  uint16_t rgb_width;
+  uint16_t rgb_height;
   std::string rgb_resolution;
-  int max_q_size;
+  uint16_t max_q_size;
   bool set_isp;
   bool interleaved;
   bool keep_preview_aspect_ratio;
 };
 struct RGBRuntimeConfig {
-  int rgb_exposure;
-  int rgb_iso;
-  int man_focus;
+  uint16_t rgb_exposure;
+  uint16_t rgb_iso;
+  uint16_t man_focus;
+  uint16_t whitebalance;
   bool set_man_focus;
   bool set_man_exposure;
+  bool set_man_whitebalance;
 };
 struct RGBParamNames {
   const std::string rgb_fps = "h_rgb_fps";
@@ -63,6 +66,8 @@ struct RGBParamNames {
   const std::string set_man_exposure = "s_set_man_exposure";
   const std::string rgb_exposure = "s_rgb_exposure";
   const std::string rgb_iso = "s_rgb_iso";
+  const std::string set_man_whitebalance = "s_set_man_whitebalance";
+  const std::string whitebalance = "s_whitebalance";
   const std::vector<std::string> name_vector = {
       rgb_fps,          preview_size,
       rgb_width,        rgb_height,
@@ -70,7 +75,8 @@ struct RGBParamNames {
       set_man_focus,    man_focus,
       interleaved,      keep_preview_aspect_ratio,
       set_man_exposure, rgb_exposure,
-      rgb_iso};
+      rgb_iso,          set_man_whitebalance,
+      whitebalance};
 };
 
 class RGBParams {
@@ -88,11 +94,11 @@ public:
     init_config_.rgb_fps =
         node->declare_parameter<double>(param_names_.rgb_fps, 30.0);
     init_config_.rgb_width =
-        node->declare_parameter<int>(param_names_.rgb_width, 1280);
+        node->declare_parameter<uint16_t>(param_names_.rgb_width, 1280);
     init_config_.rgb_height =
-        node->declare_parameter<int>(param_names_.rgb_height, 720);
+        node->declare_parameter<uint16_t>(param_names_.rgb_height, 720);
     init_config_.preview_size =
-        node->declare_parameter<int>(param_names_.preview_size, 256);
+        node->declare_parameter<uint16_t>(param_names_.preview_size, 256);
     init_config_.rgb_resolution = node->declare_parameter<std::string>(
         param_names_.rgb_resolution, "1080");
     init_config_.set_isp =
@@ -117,13 +123,13 @@ public:
       if (p.get_name() == param_names_.rgb_fps) {
         init_config_.rgb_fps = p.get_value<double>();
       } else if (p.get_name() == param_names_.preview_size) {
-        init_config_.preview_size = p.get_value<int>();
+        init_config_.preview_size = p.get_value<uint16_t>();
       } else if (p.get_name() == param_names_.rgb_width) {
-        init_config_.rgb_width = p.get_value<int>();
+        init_config_.rgb_width = p.get_value<uint16_t>();
       } else if (p.get_name() == param_names_.rgb_width) {
-        init_config_.rgb_width = p.get_value<int>();
+        init_config_.rgb_width = p.get_value<uint16_t>();
       } else if (p.get_name() == param_names_.rgb_height) {
-        init_config_.rgb_height = p.get_value<int>();
+        init_config_.rgb_height = p.get_value<uint16_t>();
       } else if (p.get_name() == param_names_.rgb_resolution) {
         init_config_.rgb_resolution = p.get_value<std::string>();
       } else if (p.get_name() == param_names_.set_isp) {
@@ -140,13 +146,13 @@ public:
       if (p.get_name() == param_names_.set_man_exposure) {
         runtime_config_.set_man_exposure = p.get_value<bool>();
       } else if (p.get_name() == param_names_.rgb_exposure) {
-        runtime_config_.rgb_exposure = p.get_value<int>();
+        runtime_config_.rgb_exposure = p.get_value<uint16_t>();
       } else if (p.get_name() == param_names_.rgb_iso) {
-        runtime_config_.rgb_iso = p.get_value<int>();
+        runtime_config_.rgb_iso = p.get_value<uint16_t>();
       } else if (p.get_name() == param_names_.set_man_focus) {
         runtime_config_.set_man_focus = p.get_value<bool>();
       } else if (p.get_name() == param_names_.man_focus) {
-        runtime_config_.man_focus = p.get_value<int>();
+        runtime_config_.man_focus = p.get_value<uint16_t>();
       }
     }
   }
@@ -164,7 +170,6 @@ public:
       ctrl.setAutoFocusMode(
           dai::CameraControl::AutoFocusMode::CONTINUOUS_PICTURE);
     }
-    return ctrl;
   }
 
   virtual void setup_rgb(std::shared_ptr<dai::node::ColorCamera> &camrgb,
