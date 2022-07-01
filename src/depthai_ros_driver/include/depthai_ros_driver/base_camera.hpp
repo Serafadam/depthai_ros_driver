@@ -23,7 +23,6 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <std_srvs/srv/detail/trigger__struct.hpp>
 #include <string>
 #include <vector>
 

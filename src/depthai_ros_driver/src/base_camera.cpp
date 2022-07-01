@@ -47,7 +47,6 @@ BaseCamera::BaseCamera(
     : rclcpp::Node(name, options) {
   cam_running_ = false;
   pipeline_ = std::make_unique<dai::Pipeline>();
-  declare_rgb_depth_params();
   start_cam_srv_ = this->create_service<Trigger>(
       "~/start_camera",
       std::bind(&BaseCamera::start_cb, this, std::placeholders::_1,

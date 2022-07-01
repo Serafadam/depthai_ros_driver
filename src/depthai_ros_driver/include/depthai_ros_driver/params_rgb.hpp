@@ -26,31 +26,29 @@
 #include "depthai/pipeline/datatype/CameraControl.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "rclcpp/logger.hpp"
-#include "rclcpp/node_interfaces/node_base_interface.hpp"
-#include "rclcpp/node_interfaces/node_parameters_interface.hpp"
 #include "rclcpp/parameter.hpp"
 #include "rclcpp/rclcpp.hpp"
 namespace depthai_ros_driver {
 namespace rgb_params {
 struct RGBInitConfig {
-  double rgb_fps;
-  uint16_t preview_size;
-  uint16_t rgb_width;
-  uint16_t rgb_height;
-  std::string rgb_resolution;
-  uint16_t max_q_size;
-  bool set_isp;
-  bool interleaved;
-  bool keep_preview_aspect_ratio;
+  double rgb_fps = 30.0;
+  uint16_t preview_size = 256;
+  uint16_t rgb_width = 1280;
+  uint16_t rgb_height = 720;
+  std::string rgb_resolution = "1080";
+  uint16_t max_q_size = 4;
+  bool set_isp = true;
+  bool interleaved = false;
+  bool keep_preview_aspect_ratio = true;
 };
 struct RGBRuntimeConfig {
-  uint16_t rgb_exposure;
-  uint16_t rgb_iso;
-  uint16_t man_focus;
-  uint16_t whitebalance;
-  bool set_man_focus;
-  bool set_man_exposure;
-  bool set_man_whitebalance;
+  uint16_t rgb_exposure = 1000;
+  uint16_t rgb_iso = 100;
+  uint16_t man_focus = 1;
+  uint16_t whitebalance = 3300;
+  bool set_man_focus = true;
+  bool set_man_exposure = false;
+  bool set_man_whitebalance = false;
 };
 struct RGBParamNames {
   const std::string rgb_fps = "h_rgb_fps";
@@ -81,130 +79,18 @@ struct RGBParamNames {
 
 class RGBParams {
 public:
-  RGBParams() {}
+  RGBParams();
   rcl_interfaces::msg::ParameterDescriptor get_ranged_int_descriptor(int min,
-                                                                     int max) {
-    rcl_interfaces::msg::ParameterDescriptor desc;
-    desc.integer_range.resize(1);
-    desc.integer_range.at(0).from_value = min;
-    desc.integer_range.at(0).to_value = max;
-    return desc;
-  }
-  void declare_rgb_params(rclcpp::Node *node) {
-    init_config_.rgb_fps =
-        node->declare_parameter<double>(param_names_.rgb_fps, 30.0);
-    init_config_.rgb_width =
-        node->declare_parameter<uint16_t>(param_names_.rgb_width, 1280);
-    init_config_.rgb_height =
-        node->declare_parameter<uint16_t>(param_names_.rgb_height, 720);
-    init_config_.preview_size =
-        node->declare_parameter<uint16_t>(param_names_.preview_size, 256);
-    init_config_.rgb_resolution = node->declare_parameter<std::string>(
-        param_names_.rgb_resolution, "1080");
-    init_config_.set_isp =
-        node->declare_parameter<bool>(param_names_.set_isp, true);
-    runtime_config_.man_focus = node->declare_parameter<int>(
-        param_names_.man_focus, 1, get_ranged_int_descriptor(0, 255));
-    init_config_.interleaved =
-        node->declare_parameter<bool>(param_names_.interleaved, false);
-    init_config_.keep_preview_aspect_ratio = node->declare_parameter<bool>(
-        param_names_.keep_preview_aspect_ratio, true);
-    runtime_config_.rgb_exposure = node->declare_parameter<int>(
-        param_names_.rgb_exposure, 1000, get_ranged_int_descriptor(10, 30000));
-    runtime_config_.rgb_iso = node->declare_parameter<int>(
-        param_names_.rgb_iso, 100, get_ranged_int_descriptor(100, 1600));
-    runtime_config_.set_man_focus =
-        node->declare_parameter<bool>(param_names_.set_man_focus, true);
-    runtime_config_.set_man_exposure =
-        node->declare_parameter<bool>(param_names_.set_man_exposure, false);
-  }
-  void set_init_config(const std::vector<rclcpp::Parameter> &params) {
-    for (const auto &p : params) {
-      if (p.get_name() == param_names_.rgb_fps) {
-        init_config_.rgb_fps = p.get_value<double>();
-      } else if (p.get_name() == param_names_.preview_size) {
-        init_config_.preview_size = p.get_value<uint16_t>();
-      } else if (p.get_name() == param_names_.rgb_width) {
-        init_config_.rgb_width = p.get_value<uint16_t>();
-      } else if (p.get_name() == param_names_.rgb_width) {
-        init_config_.rgb_width = p.get_value<uint16_t>();
-      } else if (p.get_name() == param_names_.rgb_height) {
-        init_config_.rgb_height = p.get_value<uint16_t>();
-      } else if (p.get_name() == param_names_.rgb_resolution) {
-        init_config_.rgb_resolution = p.get_value<std::string>();
-      } else if (p.get_name() == param_names_.set_isp) {
-        init_config_.set_isp = p.get_value<bool>();
-      } else if (p.get_name() == param_names_.interleaved) {
-        init_config_.interleaved = p.get_value<bool>();
-      } else if (p.get_name() == param_names_.keep_preview_aspect_ratio) {
-        init_config_.keep_preview_aspect_ratio = p.get_value<bool>();
-      }
-    }
-  }
-  void set_runtime_config(const std::vector<rclcpp::Parameter> &params) {
-    for (const auto &p : params) {
-      if (p.get_name() == param_names_.set_man_exposure) {
-        runtime_config_.set_man_exposure = p.get_value<bool>();
-      } else if (p.get_name() == param_names_.rgb_exposure) {
-        runtime_config_.rgb_exposure = p.get_value<uint16_t>();
-      } else if (p.get_name() == param_names_.rgb_iso) {
-        runtime_config_.rgb_iso = p.get_value<uint16_t>();
-      } else if (p.get_name() == param_names_.set_man_focus) {
-        runtime_config_.set_man_focus = p.get_value<bool>();
-      } else if (p.get_name() == param_names_.man_focus) {
-        runtime_config_.man_focus = p.get_value<uint16_t>();
-      }
-    }
-  }
-  dai::CameraControl get_rgb_control() {
-    dai::CameraControl ctrl;
-    if (runtime_config_.set_man_exposure) {
-      ctrl.setManualExposure(runtime_config_.rgb_exposure,
-                             runtime_config_.rgb_iso);
-    } else {
-      ctrl.setAutoExposureEnable();
-    }
-    if (runtime_config_.set_man_focus) {
-      ctrl.setManualFocus(runtime_config_.man_focus);
-    } else {
-      ctrl.setAutoFocusMode(
-          dai::CameraControl::AutoFocusMode::CONTINUOUS_PICTURE);
-    }
-  }
-
+                                                                     int max);
+  void declare_rgb_params(rclcpp::Node *node);
+  void set_init_config(const std::vector<rclcpp::Parameter> &params);
+  void set_runtime_config(const std::vector<rclcpp::Parameter> &params);
+  dai::CameraControl get_rgb_control();
   virtual void setup_rgb(std::shared_ptr<dai::node::ColorCamera> &camrgb,
-                         const rclcpp::Logger &logger) {
-    RCLCPP_INFO(logger, "Preview size %d", init_config_.preview_size);
-    camrgb->setPreviewSize(init_config_.preview_size,
-                           init_config_.preview_size);
-    RCLCPP_INFO(logger, "RGB width: %d, height: %d", init_config_.rgb_width,
-                init_config_.rgb_height);
-    camrgb->setVideoSize(init_config_.rgb_width, init_config_.rgb_height);
-
-    RCLCPP_INFO(logger, "RGB resolution %s",
-                init_config_.rgb_resolution.c_str());
-    camrgb->setResolution(rgb_resolution_map_.at(init_config_.rgb_resolution));
-    RCLCPP_INFO(logger, "Interleaved: %d", init_config_.interleaved);
-    camrgb->setInterleaved(init_config_.interleaved);
-    RCLCPP_INFO(logger, "RGB FPS: %f", init_config_.rgb_fps);
-    camrgb->setFps(init_config_.rgb_fps);
-    RCLCPP_INFO(logger, "Set ISP scale: %d", init_config_.set_isp);
-    if (init_config_.set_isp) {
-      camrgb->setIspScale(2, 3);
-    }
-    RCLCPP_INFO(logger, "Enable manual focus: %d",
-                runtime_config_.set_man_focus);
-    if (runtime_config_.set_man_focus) {
-      RCLCPP_INFO(logger, "Manual focus set: %d", runtime_config_.man_focus);
-      camrgb->initialControl.setManualFocus(runtime_config_.man_focus);
-    }
-    RCLCPP_INFO(logger, "Keep preview aspect ratio: %d",
-                init_config_.keep_preview_aspect_ratio);
-    camrgb->setPreviewKeepAspectRatio(init_config_.keep_preview_aspect_ratio);
-  }
-  RGBParamNames get_param_names() { return param_names_; }
-  RGBInitConfig get_init_config() { return init_config_; }
-  RGBRuntimeConfig get_runtime_config() { return runtime_config_; }
+                         const rclcpp::Logger &logger);
+  RGBParamNames get_param_names();
+  RGBInitConfig get_init_config();
+  RGBRuntimeConfig get_runtime_config();
 
 private:
   std::unordered_map<std::string, dai::ColorCameraProperties::SensorResolution>

@@ -41,6 +41,7 @@ RGBDCamera::RGBDCamera(const rclcpp::NodeOptions &options)
 }
 
 void RGBDCamera::on_configure() {
+  declare_rgb_depth_params();
   setup_basic_devices();
   setup_all_xout_streams();
   setup_control_config_xin();

@@ -1,4 +1,4 @@
-FROM amd64/ros:humble-ros-base
+FROM arm64v8/ros:humble-ros-base
 
 # ** [Optional] Uncomment this section to install additional packages. **
 #
@@ -8,6 +8,9 @@ RUN apt-get update \
    && apt-get -y install --no-install-recommends libusb-1.0-0-dev wget zsh
    #
    # Clean up
+#   && apt-get autoremove -y \
+#   && apt-get clean -y \
+#   && rm -rf /var/lib/apt/lists/*
 ENV DEBIAN_FRONTEND=dialog
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 # Set up auto-source of workspace for ros user
