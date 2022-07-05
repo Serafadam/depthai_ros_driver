@@ -113,22 +113,22 @@ void BaseCamera::create_pipeline() {
 
 void BaseCamera::start_device() {
   bool cam_setup = false;
-  dai::DeviceInfo info;
-  bool device_found;
-  if (!base_config_.camera_mxid.empty()) {
-    std::tie(device_found, info) =
-        dai::Device::getDeviceByMxId(base_config_.camera_mxid);
-    if (!device_found) {
-      RCLCPP_ERROR(this->get_logger(), "Device with id: %s not found!",
-                   base_config_.camera_mxid.c_str());
-    }
-  } else if (!base_config_.camera_ip.empty()) {
-    info = dai::DeviceInfo(base_config_.camera_ip);
-  }
+  // dai::DeviceInfo info;
+  // bool device_found;
+  //   if (!base_config_.camera_mxid.empty()) {
+  //     std::tie(device_found, info) =
+  //         dai::Device::getDeviceByMxId(base_config_.camera_mxid);
+  //     if (!device_found) {
+  //       RCLCPP_ERROR(this->get_logger(), "Device with id: %s not found!",
+  //                    base_config_.camera_mxid.c_str());
+  //     }
+  //   } else if (!base_config_.camera_ip.empty()) {
+  //     info = dai::DeviceInfo(base_config_.camera_ip);
+  //   }
   while (!cam_setup) {
     try {
-      device_ = std::make_unique<dai::Device>(*pipeline_, info,
-                                              dai::UsbSpeed::SUPER_PLUS);
+      device_ =
+          std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER_PLUS);
       cam_setup = true;
     } catch (const std::runtime_error &e) {
       RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
