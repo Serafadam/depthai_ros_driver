@@ -32,7 +32,7 @@ namespace depthai_ros_driver {
 namespace stereo_params {
 struct StereoInitConfig {
   double mono_fps = 60.0;
-  std::string mono_resolution = "480";
+  std::string mono_resolution = "400";
   bool align_depth = true;
   bool lr_check = true;
   uint8_t lrc_threshold = 5;
