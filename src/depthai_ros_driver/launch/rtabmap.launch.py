@@ -16,7 +16,7 @@ def generate_launch_description():
             "frame_id": "camera_link",
             "subscribe_depth": True,
             "approx_sync": True,
-            "Rtabmap/DetectionRate": "15.5",
+            "Rtabmap/DetectionRate": "3.5",
         }
     ]
     remappings = [

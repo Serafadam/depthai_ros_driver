@@ -33,11 +33,11 @@ namespace rgb_params {
 struct RGBInitConfig {
   double rgb_fps = 30.0;
   uint16_t preview_size = 256;
-  uint16_t rgb_width = 1280;
-  uint16_t rgb_height = 720;
+  uint16_t rgb_width = 1920;
+  uint16_t rgb_height = 1080;
   std::string rgb_resolution = "1080";
   uint16_t max_q_size = 4;
-  bool set_isp = true;
+  bool set_isp = false;
   bool interleaved = false;
   bool keep_preview_aspect_ratio = true;
 };

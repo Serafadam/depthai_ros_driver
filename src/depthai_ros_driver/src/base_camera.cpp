@@ -26,12 +26,16 @@
 #include "depthai/device/DeviceBase.hpp"
 #include "depthai/pipeline/Pipeline.hpp"
 #include "depthai/pipeline/datatype/IMUData.hpp"
+#include "depthai/pipeline/datatype/SystemInformation.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "depthai/pipeline/node/IMU.hpp"
+#include "depthai/pipeline/node/SystemLogger.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
+#include "depthai/xlink/XLinkConnection.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
 #include "depthai_ros_driver/params_rgb.hpp"
 #include "depthai_ros_driver/params_stereo.hpp"
+#include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "image_transport/camera_publisher.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
@@ -60,12 +64,16 @@ BaseCamera::BaseCamera(
       "~/restart_camera",
       std::bind(&BaseCamera::restart_cb, this, std::placeholders::_1,
                 std::placeholders::_2));
+  setup_logger();
+  setup_logger_xout();
 }
+
 void BaseCamera::restart_cb(const Trigger::Request::SharedPtr req,
                             Trigger::Response::SharedPtr res) {
   restart_device();
   res->success = true;
 }
+
 void BaseCamera::start_cb(const Trigger::Request::SharedPtr req,
                           Trigger::Response::SharedPtr res) {
   if (cam_running_) {
@@ -77,6 +85,7 @@ void BaseCamera::start_cb(const Trigger::Request::SharedPtr req,
   res->success = true;
   cam_running_ = true;
 }
+
 void BaseCamera::shutdown_cb(const Trigger::Request::SharedPtr req,
                              Trigger::Response::SharedPtr res) {
   RCLCPP_INFO(this->get_logger(), "Shutting down camera");
@@ -89,29 +98,47 @@ void BaseCamera::shutdown_cb(const Trigger::Request::SharedPtr req,
   res->success = true;
   cam_running_ = false;
 }
+
 void BaseCamera::shutdown_device() { device_.reset(); }
+
 void BaseCamera::restart_device() {
   shutdown_device();
   start_device();
   setup_all_queues();
 }
+
 void BaseCamera::create_pipeline() {
   pipeline_ = std::make_unique<dai::Pipeline>();
 }
+
 void BaseCamera::start_device() {
   bool cam_setup = false;
+  dai::DeviceInfo info;
+  bool device_found;
+  if (!base_config_.camera_mxid.empty()) {
+    std::tie(device_found, info) =
+        dai::Device::getDeviceByMxId(base_config_.camera_mxid);
+    if (!device_found) {
+      RCLCPP_ERROR(this->get_logger(), "Device with id: %s not found!",
+                   base_config_.camera_mxid.c_str());
+    }
+  } else if (!base_config_.camera_ip.empty()) {
+    info = dai::DeviceInfo(base_config_.camera_ip);
+  }
   while (!cam_setup) {
     try {
-      device_ =
-          std::make_unique<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER_PLUS);
+      device_ = std::make_unique<dai::Device>(*pipeline_, info,
+                                              dai::UsbSpeed::SUPER_PLUS);
       cam_setup = true;
     } catch (const std::runtime_error &e) {
       RCLCPP_ERROR(this->get_logger(), "Camera not found! Please connect it");
     }
   }
   cam_running_ = true;
-  RCLCPP_INFO(this->get_logger(), "Camera connected!");
+  device_name_ = device_->getMxId();
+  RCLCPP_INFO(this->get_logger(), "Camera %s connected!", device_name_.c_str());
 }
+
 void BaseCamera::setup_control_config_xin() {
   xin_control_ = pipeline_->create<dai::node::XLinkIn>();
   xin_config_ = pipeline_->create<dai::node::XLinkIn>();
@@ -120,6 +147,7 @@ void BaseCamera::setup_control_config_xin() {
   xin_control_->out.link(camrgb_->inputControl);
   xin_config_->out.link(camrgb_->inputConfig);
 }
+
 void BaseCamera::setup_basic_devices() {
   if (base_config_.enable_rgb) {
     setup_rgb();
@@ -134,14 +162,16 @@ void BaseCamera::setup_basic_devices() {
     setup_imu();
   }
 }
+
 void BaseCamera::setup_rgb() {
-  RCLCPP_INFO(this->get_logger(), "Creating RGB cam.");
+  RCLCPP_INFO(this->get_logger(), "Creating RGB.");
   camrgb_ = pipeline_->create<dai::node::ColorCamera>();
   rgb_params_->setup_rgb(camrgb_, this->get_logger());
   RCLCPP_INFO(this->get_logger(), "Created.");
 }
+
 void BaseCamera::setup_imu() {
-  RCLCPP_INFO(this->get_logger(), "Creating IMU node.");
+  RCLCPP_INFO(this->get_logger(), "Creating IMU.");
   imu_ = pipeline_->create<dai::node::IMU>();
   imu_->enableIMUSensor(dai::IMUSensor::ACCELEROMETER_RAW, 400);
   imu_->enableIMUSensor(dai::IMUSensor::GYROSCOPE_RAW, 400);
@@ -149,8 +179,9 @@ void BaseCamera::setup_imu() {
   imu_->setBatchReportThreshold(1);
   imu_->setMaxBatchReports(10);
 }
+
 void BaseCamera::setup_stereo() {
-  RCLCPP_INFO(this->get_logger(), "Creating stereo cam.");
+  RCLCPP_INFO(this->get_logger(), "Creating DEPTH.");
   mono_left_ = pipeline_->create<dai::node::MonoCamera>();
   mono_right_ = pipeline_->create<dai::node::MonoCamera>();
   stereo_ = pipeline_->create<dai::node::StereoDepth>();
@@ -162,6 +193,10 @@ void BaseCamera::setup_stereo() {
   mono_left_->out.link(stereo_->left);
   mono_right_->out.link(stereo_->right);
   RCLCPP_INFO(this->get_logger(), "Created.");
+}
+void BaseCamera::setup_logger() {
+  logger_ = pipeline_->create<dai::node::SystemLogger>();
+  logger_->setRate(1.0);
 }
 void BaseCamera::trig_rec_cb(const Trigger::Request::SharedPtr /*req*/,
                              Trigger::Response::SharedPtr /*res*/) {
@@ -220,6 +255,12 @@ void BaseCamera::setup_imu_xout() {
   xout_imu_->setStreamName(imu_q_name_);
   imu_->out.link(xout_imu_->input);
 }
+void BaseCamera::setup_logger_xout() {
+
+  xout_logger_ = pipeline_->create<dai::node::XLinkOut>();
+  xout_logger_->setStreamName(logger_q_name_);
+  logger_->out.link(xout_logger_->input);
+}
 void BaseCamera::setup_all_xout_streams() {
   if (base_config_.enable_rgb) {
     RCLCPP_INFO(this->get_logger(), "Enabling rgb pub.");
@@ -274,6 +315,11 @@ void BaseCamera::regular_queue_cb(const std::string &name,
     publish_img(cv_frame, sensor_msgs::image_encodings::BGR8, rgb_info_,
                 rgb_pub_, curr_time);
   } else if (name == depth_q_name_) {
+    if (stereo_params_->get_init_config().align_depth) {
+      cv::resize(cv_frame, cv_frame,
+                 cv::Size(rgb_params_->get_init_config().rgb_width,
+                          rgb_params_->get_init_config().rgb_height));
+    }
     publish_img(cv_frame, sensor_msgs::image_encodings::TYPE_16UC1, depth_info_,
                 depth_pub_, curr_time);
   } else if (name == left_q_name_) {
@@ -321,6 +367,41 @@ void BaseCamera::imu_cb(const std::string &name,
     }
     imu_pub_->publish(imu_msg);
   }
+}
+void BaseCamera::logger_cb(const std::string &name,
+                           const std::shared_ptr<dai::ADatatype> &data) {
+  auto info = std::dynamic_pointer_cast<dai::SystemInformation>(data);
+  std::stringstream msg;
+  msg << "Ddr used / total - "
+      << info->ddrMemoryUsage.used / (1024.0f * 1024.0f) << "/"
+      << info->ddrMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
+      << "\n";
+  msg << "Cmx used / total - "
+      << info->cmxMemoryUsage.used / (1024.0f * 1024.0f) << "/"
+      << info->cmxMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
+      << "\n";
+  msg << "LeonCss heap used / total - "
+      << info->leonCssMemoryUsage.used / (1024.0f * 1024.0f) << "/"
+      << info->leonCssMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
+      << "\n";
+  msg << "LeonMss heap used / total - "
+      << info->leonMssMemoryUsage.used / (1024.0f * 1024.0f) << "/"
+      << info->leonMssMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
+      << "\n";
+  const auto &t = info->chipTemperature;
+  msg << "Chip temperature - average: " << t.average << " css: " << t.css
+      << " mss: " << t.mss << " upa: " << t.upa << " dss: " << t.dss << "\n";
+  msg << "Cpu usage - Leon CSS: " << info->leonCssCpuUsage.average * 100
+      << "%% Leon MSS: " << info->leonMssCpuUsage.average * 100 << "%%"
+      << "\n";
+  DiagnosticArray diag;
+  diag.header.stamp = this->get_clock()->now();
+  diag.status.resize(1);
+  diag.status[0].level = diag.status[0].OK;
+  diag.status[0].name = this->get_name() + device_name_;
+  diag.status[0].hardware_id = device_name_;
+  diag.status[0].message = msg.str();
+  diag_pub_->publish(diag);
 }
 void BaseCamera::enable_rgb_q() {
   rgb_pub_ =
@@ -413,6 +494,15 @@ BaseCamera::parameter_cb(const std::vector<rclcpp::Parameter> &params) {
 void BaseCamera::setup_config_q() {
   config_q_ = device_->getInputQueue(config_q_name_);
 }
+void BaseCamera::setup_logger_q() {
+  diag_pub_ = this->create_publisher<DiagnosticArray>("/diagnostics", 10);
+
+  logger_q_ =
+      device_->getOutputQueue(logger_q_name_, base_config_.max_q_size, false);
+  logger_q_->addCallback(std::bind(&BaseCamera::logger_cb, this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2));
+}
 void BaseCamera::setup_all_queues() {
   if (base_config_.enable_rgb) {
     enable_rgb_q();
@@ -429,6 +519,7 @@ void BaseCamera::setup_all_queues() {
   if (base_config_.enable_imu) {
     setup_imu_q();
   }
+  setup_logger_q();
   setup_control_q();
   setup_config_q();
   param_cb_handle_ = this->add_on_set_parameters_callback(
@@ -446,10 +537,12 @@ void BaseCamera::declare_common_params() {
       this->declare_parameter<bool>(base_param_names_.enable_imu, true);
   base_config_.enable_recording =
       this->declare_parameter<bool>(base_param_names_.enable_recording, false);
-  base_config_.align_depth =
-      this->declare_parameter<bool>(base_param_names_.align_depth, true);
   base_config_.max_q_size =
       this->declare_parameter<int>(base_param_names_.max_q_size, 4);
+  base_config_.camera_mxid =
+      this->declare_parameter<std::string>(base_param_names_.camera_mxid, "");
+  base_config_.camera_ip =
+      this->declare_parameter<std::string>(base_param_names_.camera_ip, "");
 }
 
 } // namespace depthai_ros_driver

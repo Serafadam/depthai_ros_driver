@@ -40,12 +40,14 @@
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "depthai/pipeline/node/IMU.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
+#include "depthai/pipeline/node/SystemLogger.hpp"
 #include "depthai/pipeline/node/VideoEncoder.hpp"
 #include "depthai/pipeline/node/XLinkIn.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/calibration.hpp"
 #include "depthai_ros_driver/params_rgb.hpp"
 #include "depthai_ros_driver/params_stereo.hpp"
+#include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "image_transport/camera_publisher.hpp"
 #include "image_transport/image_transport.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
@@ -53,6 +55,7 @@
 #include "rclcpp/logging.hpp"
 #include "rclcpp/parameter.hpp"
 #include "rclcpp/parameter_event_handler.hpp"
+#include "rclcpp/publisher.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/service.hpp"
 #include "sensor_msgs/image_encodings.hpp"
@@ -69,7 +72,8 @@ struct BaseCameraConfig {
   bool enable_lr;
   bool enable_imu;
   bool enable_recording;
-  bool align_depth;
+  std::string camera_mxid;
+  std::string camera_ip;
 };
 struct BaseCameraParamNames {
   const std::string max_q_size = "h_max_q_size";
@@ -78,10 +82,12 @@ struct BaseCameraParamNames {
   const std::string enable_lr = "h_enable_lr";
   const std::string enable_imu = "h_enable_imu";
   const std::string enable_recording = "h_enable_recording";
-  const std::string align_depth = "h_align_depth";
+  const std::string camera_mxid = "h_camera_mxid";
+  const std::string camera_ip = "h_camera_ip";
 };
 class BaseCamera : public rclcpp::Node {
   using Trigger = std_srvs::srv::Trigger;
+  using DiagnosticArray = diagnostic_msgs::msg::DiagnosticArray;
 
 public:
   explicit BaseCamera(const std::string &name,
@@ -98,6 +104,7 @@ public:
   virtual void setup_rgb();
   virtual void setup_imu();
   virtual void setup_stereo();
+  virtual void setup_logger();
   void start_cb(const Trigger::Request::SharedPtr req,
                 Trigger::Response::SharedPtr res);
   void shutdown_cb(const Trigger::Request::SharedPtr req,
@@ -123,6 +130,7 @@ public:
   void setup_depth_xout();
   void setup_lr_xout();
   void setup_imu_xout();
+  void setup_logger_xout();
   void setup_record_xout();
   void setup_all_xout_streams();
   void regular_queue_cb(const std::string &name,
@@ -135,8 +143,11 @@ public:
               const std::shared_ptr<dai::ADatatype> &data);
   void imu_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
+  void logger_cb(const std::string &name,
+                 const std::shared_ptr<dai::ADatatype> &data);
   void setup_recording_q();
   void setup_control_q();
+  void setup_logger_q();
   rcl_interfaces::msg::SetParametersResult
   parameter_cb(const std::vector<rclcpp::Parameter> &params);
   void setup_config_q();
@@ -148,6 +159,7 @@ private:
   OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
   image_transport::CameraPublisher rgb_pub_, depth_pub_, left_pub_, right_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
+  rclcpp::Publisher<DiagnosticArray>::SharedPtr diag_pub_;
   sensor_msgs::msg::CameraInfo rgb_info_, depth_info_, left_info_, right_info_;
   std::unique_ptr<rgb_params::RGBParams> rgb_params_;
   std::unique_ptr<stereo_params::StereoParams> stereo_params_;
@@ -159,16 +171,18 @@ private:
   std::shared_ptr<dai::node::MonoCamera> mono_left_;
   std::shared_ptr<dai::node::MonoCamera> mono_right_;
   std::shared_ptr<dai::node::StereoDepth> stereo_;
+  std::shared_ptr<dai::node::SystemLogger> logger_;
   std::shared_ptr<dai::node::IMU> imu_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_depth_, xout_left_,
-      xout_right_, xout_enc_, xout_imu_;
+      xout_right_, xout_enc_, xout_imu_, xout_logger_;
   std::shared_ptr<dai::node::XLinkIn> xin_config_, xin_control_;
   std::shared_ptr<dai::node::VideoEncoder> video_enc_;
   std::shared_ptr<dai::DataOutputQueue> rgb_q_, depth_q_, left_q_, right_q_,
-      enc_q_, imu_q_;
+      enc_q_, imu_q_, logger_q_;
   std::shared_ptr<dai::DataInputQueue> config_q_, control_q_;
   std::ofstream video_file_;
   std::string rgb_frame_, left_frame_, right_frame_;
+  std::string device_name_;
   const std::string rgb_q_name_ = "rgb";
   const std::string depth_q_name_ = "depth";
   const std::string left_q_name_ = "left";
@@ -177,6 +191,7 @@ private:
   const std::string video_enc_q_name_ = "h265";
   const std::string control_q_name_ = "control";
   const std::string config_q_name_ = "config";
+  const std::string logger_q_name_ = "logger";
   std::atomic<bool> record_, started_recording_, cam_running_;
   const std::vector<std::string> default_label_map_ = {
       "background", "aeroplane",   "bicycle", "bird",  "boat",
@@ -184,12 +199,6 @@ private:
       "cow",        "diningtable", "dog",     "horse", "motorbike",
       "person",     "pottedplant", "sheep",   "sofa",  "train",
       "tvmonitor"};
-
-  template <typename T> T get_param(const std::string &name) {
-    return this->get_parameter<T>(name);
-  }
-  rcl_interfaces::msg::ParameterDescriptor get_ranged_int_descriptor(int min,
-                                                                     int max);
 };
 } // namespace depthai_ros_driver
 

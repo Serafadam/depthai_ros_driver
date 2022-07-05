@@ -25,6 +25,8 @@ ament_auto_add_library(
   ${PROJECT_NAME} SHARED
   src/base_camera.cpp
   src/calibration.cpp
+  src/params_rgb.cpp
+  src/params_stereo.cpp
   src/rgbd_camera_obj.cpp
   #src/mobilenet_camera_obj.cpp
   #src/segmentation_camera_obj.cpp

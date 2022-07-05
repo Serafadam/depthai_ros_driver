@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "depthai_ros_driver/calibration.hpp"
-#include <sensor_msgs/msg/detail/camera_info__struct.hpp>
+#include "sensor_msgs/msg/camera_info.hpp"
 
 namespace depthai_ros_driver {
 sensor_msgs::msg::CameraInfo

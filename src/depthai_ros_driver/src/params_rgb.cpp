@@ -70,7 +70,8 @@ void RGBParams::declare_rgb_params(rclcpp::Node *node) {
   runtime_config_.set_man_whitebalance = node->declare_parameter<bool>(
       param_names_.set_man_whitebalance, runtime_config_.set_man_whitebalance);
   runtime_config_.whitebalance = node->declare_parameter<uint16_t>(
-      param_names_.whitebalance, runtime_config_.whitebalance);
+      param_names_.whitebalance, runtime_config_.whitebalance,
+      get_ranged_int_descriptor(1000, 12000));
 }
 void RGBParams::set_init_config(const std::vector<rclcpp::Parameter> &params) {
   for (const auto &p : params) {
