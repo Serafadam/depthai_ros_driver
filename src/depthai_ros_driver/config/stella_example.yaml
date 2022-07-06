@@ -1,0 +1,74 @@
+# TUM-RGBD RGBD model for 01
+
+#==============#
+# Camera Model #
+#==============#
+
+Camera:
+  name: "Depthai"
+  setup: "RGBD"
+  model: "perspective"
+
+  fx: 1492.2674560546875
+  fy: 1492.2674560546875
+  cx: 966.3853759765625
+  cy: 535.5467529296875
+
+  k1: -1.949381947517395
+  k2: 2.727895975112915
+  p1: -0.0011499301763251424
+  p2: 0.0012763467384502292
+  k3: 34.966983795166016
+
+  fps: 60.0
+  cols: 1280
+  rows: 720
+  focal_x_baseline: 20.0
+  depth_threshold: 20.0
+
+  color_order: "BGR"
+
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+Preprocessing:
+  min_size: 800
+  depthmap_factor: 5000.0 # Note: Set it to 1.0 for the rosbag format data set.
+
+#================#
+# ORB Parameters #
+#================#
+
+Feature:
+  name: "default ORB feature extraction setting"
+  max_num_keypoints: 2000
+  scale_factor: 1.2
+  num_levels: 8
+  ini_fast_threshold: 20
+  min_fast_threshold: 7
+
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr: 0.07471049682
+  redundant_obs_ratio_thr: 0.9
+  num_obs_thr: 2
+
+#===========================#
+# PangolinViewer Parameters #
+#===========================#
+
+PangolinViewer:
+  keyframe_size: 0.05
+  keyframe_line_width: 1
+  graph_line_width: 1
+  point_size: 2
+  camera_size: 0.08
+  camera_line_width: 3
+  viewpoint_x: 0
+  viewpoint_y: -0.9
+  viewpoint_z: -1.9
+  viewpoint_f: 400
