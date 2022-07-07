@@ -1,5 +1,7 @@
 # An example-based DepthAI ROS2 driver
 
+Work presented here has been developed by Adam Serafin while at Inmotion Labs
+
 Hi! This is a simple (for now) project that enables Luxonis' DepthAI camera to work with ROS2 based systems.
 For now, it consists of a base mobilenet_camera example, which outputs detections based on a pretrained SSD model.
 The code is loosely based on depthai examples, but it follows more object-oriented pattern.

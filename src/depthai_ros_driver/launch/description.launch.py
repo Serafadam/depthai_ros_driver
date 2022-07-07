@@ -1,58 +1,69 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def generate_launch_description():
+def launch_setup(context, *args, **kwargs):
     # TODO: Replace with robot state publisher in the future
+    tf_prefix = LaunchConfiguration("frame_prefix").perform(context)
+    return [
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="base_to_color",
+            arguments=[
+                "0.0",
+                "0",
+                "0.0",
+                "0",
+                "0",
+                "0",
+                "{}camera_link".format(tf_prefix),
+                "{}color_frame".format(tf_prefix),
+            ],
+            output="screen",
+        ),
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="base_to_left",
+            arguments=[
+                "0.0",
+                "0",
+                "0.0",
+                "0",
+                "0",
+                "0",
+                "{}camera_link".format(tf_prefix),
+                "{}left_frame".format(tf_prefix),
+            ],
+            output="screen",
+        ),
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="base_to_right",
+            arguments=[
+                "0.0",
+                "0",
+                "0.0",
+                "0",
+                "0",
+                "0",
+                "{}camera_link".format(tf_prefix),
+                "{}right_frame".format(tf_prefix),
+            ],
+            output="screen",
+        ),
+    ]
+
+
+def generate_launch_description():
+    declared_arguments = [
+        DeclareLaunchArgument("frame_prefix", default_value="camera"),
+    ]
+
     return LaunchDescription(
-        [
-            Node(
-                package="tf2_ros",
-                executable="static_transform_publisher",
-                name="base_to_color",
-                arguments=[
-                    "0.0",
-                    "0",
-                    "0.0",
-                    "0",
-                    "0",
-                    "0",
-                    "camera_link",
-                    "color_frame",
-                ],
-                output="screen",
-            ),
-            Node(
-                package="tf2_ros",
-                executable="static_transform_publisher",
-                name="base_to_left",
-                arguments=[
-                    "0.0",
-                    "0",
-                    "0.0",
-                    "0",
-                    "0",
-                    "0",
-                    "camera_link",
-                    "left_frame",
-                ],
-                output="screen",
-            ),
-            Node(
-                package="tf2_ros",
-                executable="static_transform_publisher",
-                name="base_to_right",
-                arguments=[
-                    "0.0",
-                    "0",
-                    "0.0",
-                    "0",
-                    "0",
-                    "0",
-                    "camera_link",
-                    "right_frame",
-                ],
-                output="screen",
-            ),
-        ]
+        declared_arguments + [OpaqueFunction(function=launch_setup)]
     )

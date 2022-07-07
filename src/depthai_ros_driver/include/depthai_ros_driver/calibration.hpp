@@ -20,23 +20,16 @@
 #ifndef DEPTHAI_ROS_DRIVER__CALIBRATION_HPP_
 #define DEPTHAI_ROS_DRIVER__CALIBRATION_HPP_
 #include <string>
-#include <unordered_map>
 
 #include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "depthai-shared/common/Point2f.hpp"
 #include "depthai/depthai.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 namespace depthai_ros_driver {
-const std::unordered_map<dai::CameraBoardSocket, std::string>
-    socket_to_frame_map{
-        {dai::CameraBoardSocket::RGB, "color_frame"},
-        {dai::CameraBoardSocket::AUTO, "color_frame"},
-        {dai::CameraBoardSocket::LEFT, "left_frame"},
-        {dai::CameraBoardSocket::RIGHT, "right_frame"},
-    };
 sensor_msgs::msg::CameraInfo
 get_calibration(std::unique_ptr<dai::Device> &device,
-                dai::CameraBoardSocket socket, int width = 0, int height = 0,
+                const std::string &frame_id, dai::CameraBoardSocket socket,
+                int width = 0, int height = 0,
                 dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
                 dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)});
 } // namespace depthai_ros_driver

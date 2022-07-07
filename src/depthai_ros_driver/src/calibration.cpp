@@ -24,8 +24,8 @@
 namespace depthai_ros_driver {
 sensor_msgs::msg::CameraInfo
 get_calibration(std::unique_ptr<dai::Device> &device,
-                dai::CameraBoardSocket socket, int width, int height,
-                dai::Point2f top_left_pixel_id,
+                const std::string &frame_id, dai::CameraBoardSocket socket,
+                int width, int height, dai::Point2f top_left_pixel_id,
                 dai::Point2f bottom_right_pixel_id) {
   dai::CalibrationHandler cal_data = device->readCalibration();
   std::vector<std::vector<float>> intrinsics;
@@ -76,7 +76,7 @@ get_calibration(std::unique_ptr<dai::Device> &device,
   info.p[7] = ty;
   info.p[11] = 0.0;
   info.distortion_model = "rational_polynomial";
-  info.header.frame_id = socket_to_frame_map.at(socket);
+  info.header.frame_id = frame_id;
   return info;
 }
 } // namespace depthai_ros_driver

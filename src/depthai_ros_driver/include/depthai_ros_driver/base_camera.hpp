@@ -154,6 +154,7 @@ public:
   void setup_all_queues();
 
 private:
+  void set_frame_ids();
   rclcpp::Service<Trigger>::SharedPtr trigger_recording_srv_, restart_cam_srv_,
       start_cam_srv_, shutdown_cam_srv_;
   OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
@@ -199,6 +200,7 @@ private:
       "cow",        "diningtable", "dog",     "horse", "motorbike",
       "person",     "pottedplant", "sheep",   "sofa",  "train",
       "tvmonitor"};
+  std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids;
 };
 } // namespace depthai_ros_driver
 
