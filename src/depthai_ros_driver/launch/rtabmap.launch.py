@@ -51,7 +51,8 @@ def generate_launch_description():
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(depthai_prefix, "launch", "description.launch.py")
-                )
+                ),
+                launch_arguments={"tf_prefix": "camera"}.items(),
             ),
             ComposableNodeContainer(
                 name="container",

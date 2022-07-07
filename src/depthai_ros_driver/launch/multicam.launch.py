@@ -18,7 +18,7 @@ def launch_setup(context, *args, **kwargs):
 
     depthai_prefix = get_package_share_directory("depthai_ros_driver")
     rviz_config = os.path.join(depthai_prefix, "config", "multicam.rviz")
-    cams = {"cam_1": "1844301061FC050F00", "cam_2": "19443010B1BCF41200"}
+    cams = {"cam_1": "", "cam_2": ""}
     tf_publishers = []
     nodes = []
     for cam_name, cam_mx_id in cams.items():
@@ -26,7 +26,7 @@ def launch_setup(context, *args, **kwargs):
             PythonLaunchDescriptionSource(
                 os.path.join(depthai_prefix, "launch", "description.launch.py")
             ),
-            launch_arguments={"tf_prefix": "test"}.items(),
+            launch_arguments={"tf_prefix": cam_name}.items(),
         )
         base_to_cam = Node(
             package="tf2_ros",
@@ -40,7 +40,7 @@ def launch_setup(context, *args, **kwargs):
                 "0",
                 "0",
                 "base_camera_link",
-                "{}_camera_link".format(cam_name),
+                "{}_link".format(cam_name),
             ],
             output="screen",
         )

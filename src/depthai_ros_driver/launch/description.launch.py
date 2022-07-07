@@ -6,7 +6,7 @@ from launch_ros.actions import Node
 
 def launch_setup(context, *args, **kwargs):
     # TODO: Replace with robot state publisher in the future
-    tf_prefix = LaunchConfiguration("frame_prefix").perform(context)
+    tf_prefix = LaunchConfiguration("tf_prefix").perform(context) + "_"
     return [
         Node(
             package="tf2_ros",
@@ -19,7 +19,7 @@ def launch_setup(context, *args, **kwargs):
                 "0",
                 "0",
                 "0",
-                "{}camera_link".format(tf_prefix),
+                "{}link".format(tf_prefix),
                 "{}color_frame".format(tf_prefix),
             ],
             output="screen",
@@ -35,7 +35,7 @@ def launch_setup(context, *args, **kwargs):
                 "0",
                 "0",
                 "0",
-                "{}camera_link".format(tf_prefix),
+                "{}link".format(tf_prefix),
                 "{}left_frame".format(tf_prefix),
             ],
             output="screen",
@@ -51,7 +51,7 @@ def launch_setup(context, *args, **kwargs):
                 "0",
                 "0",
                 "0",
-                "{}camera_link".format(tf_prefix),
+                "{}link".format(tf_prefix),
                 "{}right_frame".format(tf_prefix),
             ],
             output="screen",
@@ -61,7 +61,7 @@ def launch_setup(context, *args, **kwargs):
 
 def generate_launch_description():
     declared_arguments = [
-        DeclareLaunchArgument("frame_prefix", default_value="camera"),
+        DeclareLaunchArgument("tf_prefix", default_value="camera"),
     ]
 
     return LaunchDescription(
