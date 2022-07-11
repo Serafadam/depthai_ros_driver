@@ -22,6 +22,8 @@
 
 #include <cstdint>
 #include <depthai-shared/common/CameraBoardSocket.hpp>
+#include <depthai/device/DataQueue.hpp>
+#include <depthai/pipeline/datatype/ADatatype.hpp>
 #include <memory>
 
 #include "depthai-shared/common/UsbSpeed.hpp"
@@ -185,7 +187,7 @@ void BaseCamera::setup_basic_devices() {
 void BaseCamera::setup_rgb() {
   RCLCPP_INFO(this->get_logger(), "Creating RGB.");
   camrgb_ = pipeline_->create<dai::node::ColorCamera>();
-  rgb_params_->setup_rgb(camrgb_, this->get_logger());
+  rgb_params_handler_->setup_rgb(camrgb_, this->get_logger());
   RCLCPP_INFO(this->get_logger(), "Created.");
 }
 
@@ -207,8 +209,8 @@ void BaseCamera::setup_stereo() {
 
   mono_left_->setBoardSocket(dai::CameraBoardSocket::LEFT);
   mono_right_->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-  stereo_params_->setup_stereo(stereo_, mono_left_, mono_right_,
-                               this->get_logger());
+  stereo_params_handler_->setup_stereo(stereo_, mono_left_, mono_right_,
+                                       this->get_logger());
   mono_left_->out.link(stereo_->left);
   mono_right_->out.link(stereo_->right);
   RCLCPP_INFO(this->get_logger(), "Created.");
@@ -230,7 +232,7 @@ void BaseCamera::trig_rec_cb(const Trigger::Request::SharedPtr /*req*/,
 void BaseCamera::setup_recording() {
   video_enc_ = pipeline_->create<dai::node::VideoEncoder>();
   video_enc_->setDefaultProfilePreset(
-      rgb_params_->get_init_config().rgb_fps,
+      rgb_params_handler_->get_init_config().rgb_fps,
       dai::VideoEncoderProperties::Profile::H264_MAIN);
   trigger_recording_srv_ = this->create_service<Trigger>(
       "~/trigger_recording",
@@ -239,10 +241,11 @@ void BaseCamera::setup_recording() {
 }
 void BaseCamera::declare_rgb_depth_params() {
   declare_common_params();
-  rgb_params_ = std::make_unique<rgb_params::RGBParams>();
-  stereo_params_ = std::make_unique<stereo_params::StereoParams>();
-  rgb_params_->declare_rgb_params(this);
-  stereo_params_->declare_depth_params(this);
+  rgb_params_handler_ = std::make_unique<rgb_params::RGBParamsHandler>();
+  stereo_params_handler_ =
+      std::make_unique<stereo_params::StereoParamsHandler>();
+  rgb_params_handler_->declare_rgb_params(this);
+  stereo_params_handler_->declare_depth_params(this);
   set_frame_ids();
 }
 void BaseCamera::setup_rgb_xout() {
@@ -335,10 +338,10 @@ void BaseCamera::regular_queue_cb(const std::string &name,
     publish_img(cv_frame, sensor_msgs::image_encodings::BGR8, rgb_info_,
                 rgb_pub_, curr_time);
   } else if (name == depth_q_name_) {
-    if (stereo_params_->get_init_config().align_depth) {
+    if (stereo_params_handler_->get_init_config().align_depth) {
       cv::resize(cv_frame, cv_frame,
-                 cv::Size(rgb_params_->get_init_config().rgb_width,
-                          rgb_params_->get_init_config().rgb_height));
+                 cv::Size(rgb_params_handler_->get_init_config().rgb_width,
+                          rgb_params_handler_->get_init_config().rgb_height));
     }
     publish_img(cv_frame, sensor_msgs::image_encodings::TYPE_16UC1, depth_info_,
                 depth_pub_, curr_time);
@@ -426,10 +429,11 @@ void BaseCamera::logger_cb(const std::string &name,
 void BaseCamera::enable_rgb_q() {
   rgb_pub_ =
       image_transport::create_camera_publisher(this, "~/color/image_raw");
-  rgb_info_ = get_calibration(
-      device_, frame_ids.at(dai::CameraBoardSocket::RGB),
-      dai::CameraBoardSocket::RGB, rgb_params_->get_init_config().rgb_width,
-      rgb_params_->get_init_config().rgb_height);
+  rgb_info_ =
+      get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RGB),
+                      dai::CameraBoardSocket::RGB,
+                      rgb_params_handler_->get_init_config().rgb_width,
+                      rgb_params_handler_->get_init_config().rgb_height);
   rgb_q_ = device_->getOutputQueue(rgb_q_name_, base_config_.max_q_size, false);
   rgb_q_->addCallback(std::bind(&BaseCamera::regular_queue_cb, this,
                                 std::placeholders::_1, std::placeholders::_2));
@@ -437,11 +441,12 @@ void BaseCamera::enable_rgb_q() {
 void BaseCamera::enable_depth_q() {
   depth_pub_ =
       image_transport::create_camera_publisher(this, "~/depth/image_raw");
-  if (stereo_params_->get_init_config().align_depth) {
-    depth_info_ = get_calibration(
-        device_, frame_ids.at(dai::CameraBoardSocket::RGB),
-        dai::CameraBoardSocket::RGB, rgb_params_->get_init_config().rgb_width,
-        rgb_params_->get_init_config().rgb_height);
+  if (stereo_params_handler_->get_init_config().align_depth) {
+    depth_info_ =
+        get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RGB),
+                        dai::CameraBoardSocket::RGB,
+                        rgb_params_handler_->get_init_config().rgb_width,
+                        rgb_params_handler_->get_init_config().rgb_height);
   } else {
     depth_info_ =
         get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RIGHT),
@@ -512,8 +517,8 @@ void BaseCamera::setup_control_q() {
 }
 rcl_interfaces::msg::SetParametersResult
 BaseCamera::parameter_cb(const std::vector<rclcpp::Parameter> &params) {
-  rgb_params_->set_runtime_config(params);
-  auto ctrl = rgb_params_->get_rgb_control();
+  rgb_params_handler_->set_runtime_config(params);
+  auto ctrl = rgb_params_handler_->get_rgb_control();
   control_q_->send(ctrl);
   rcl_interfaces::msg::SetParametersResult res;
   res.successful = true;
@@ -553,7 +558,28 @@ void BaseCamera::setup_all_queues() {
   param_cb_handle_ = this->add_on_set_parameters_callback(
       std::bind(&BaseCamera::parameter_cb, this, std::placeholders::_1));
 }
-
+std::shared_ptr<dai::Pipeline> BaseCamera::get_pipeline() { return pipeline_; }
+dai::DataOutputQueue
+BaseCamera::get_output_q(const std::string &q_name,
+                             int max_q_size = (base_config_.max_q_size),
+                             bool blocking = false) {}
+std::string get_frame_id(const dai::CameraBoardSocket &socket) {}
+void BaseCamera::override_init_rgb_config(
+    const rgb_params::RGBInitConfig &config) {
+  rgb_params_handler_->set_init_config(config);
+}
+void BaseCamera::override_runtime_rgb_config(
+    const rgb_params::RGBRuntimeConfig &config) {
+  rgb_params_handler_->set_runtime_config(config);
+}
+void BaseCamera::override_init_stereo_config(
+    const stereo_params::StereoInitConfig &config) {
+  stereo_params_handler_->set_init_config(config);
+}
+void BaseCamera::override_runtime_stereo_config(
+    const stereo_params::StereoRuntimeConfig &config) {
+  stereo_params_handler_->set_runtime_config(config);
+}
 void BaseCamera::declare_common_params() {
   base_config_.enable_rgb =
       this->declare_parameter<bool>(base_param_names_.enable_rgb, true);

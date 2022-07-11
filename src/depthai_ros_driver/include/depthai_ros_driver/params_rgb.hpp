@@ -51,21 +51,21 @@ struct RGBRuntimeConfig {
   bool set_man_whitebalance = false;
 };
 struct RGBParamNames {
-  const std::string rgb_fps = "h_rgb_fps";
-  const std::string preview_size = "h_preview_size";
-  const std::string rgb_width = "h_rgb_width";
-  const std::string rgb_height = "h_rgb_height";
-  const std::string rgb_resolution = "h_rgb_resolution";
-  const std::string set_isp = "h_set_isp";
-  const std::string interleaved = "h_inverleaved";
-  const std::string keep_preview_aspect_ratio = "h_keep_preview_aspect_ratio";
-  const std::string set_man_focus = "s_set_man_focus";
-  const std::string man_focus = "s_man_focus";
-  const std::string set_man_exposure = "s_set_man_exposure";
-  const std::string rgb_exposure = "s_rgb_exposure";
-  const std::string rgb_iso = "s_rgb_iso";
-  const std::string set_man_whitebalance = "s_set_man_whitebalance";
-  const std::string whitebalance = "s_whitebalance";
+  const std::string rgb_fps = "i_rgb_fps";
+  const std::string preview_size = "i_preview_size";
+  const std::string rgb_width = "i_rgb_width";
+  const std::string rgb_height = "i_rgb_height";
+  const std::string rgb_resolution = "i_rgb_resolution";
+  const std::string set_isp = "i_set_isp";
+  const std::string interleaved = "i_inverleaved";
+  const std::string keep_preview_aspect_ratio = "i_keep_preview_aspect_ratio";
+  const std::string set_man_focus = "r_set_man_focus";
+  const std::string man_focus = "r_man_focus";
+  const std::string set_man_exposure = "r_set_man_exposure";
+  const std::string rgb_exposure = "r_rgb_exposure";
+  const std::string rgb_iso = "r_rgb_iso";
+  const std::string set_man_whitebalance = "r_set_man_whitebalance";
+  const std::string whitebalance = "r_whitebalance";
   const std::vector<std::string> name_vector = {
       rgb_fps,          preview_size,
       rgb_width,        rgb_height,
@@ -77,21 +77,22 @@ struct RGBParamNames {
       whitebalance};
 };
 
-class RGBParams {
+class RGBParamsHandler {
 public:
-  RGBParams();
+  RGBParamsHandler();
   rcl_interfaces::msg::ParameterDescriptor get_ranged_int_descriptor(int min,
                                                                      int max);
   void declare_rgb_params(rclcpp::Node *node);
-  void set_init_config(const std::vector<rclcpp::Parameter> &params);
-  void set_runtime_config(const std::vector<rclcpp::Parameter> &params);
   dai::CameraControl get_rgb_control();
   virtual void setup_rgb(std::shared_ptr<dai::node::ColorCamera> &camrgb,
                          const rclcpp::Logger &logger);
   RGBParamNames get_param_names();
   RGBInitConfig get_init_config();
   RGBRuntimeConfig get_runtime_config();
-
+  void set_init_config(const std::vector<rclcpp::Parameter> &params);
+    void set_init_config(const RGBInitConfig &config);
+    void set_runtime_config(const RGBRuntimeConfig &config);
+  void set_runtime_config(const std::vector<rclcpp::Parameter> &params);
 private:
   std::unordered_map<std::string, dai::ColorCameraProperties::SensorResolution>
       rgb_resolution_map_ = {

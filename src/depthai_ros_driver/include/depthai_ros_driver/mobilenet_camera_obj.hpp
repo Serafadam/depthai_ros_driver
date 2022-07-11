@@ -23,7 +23,6 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <chrono>
-#include <depthai/pipeline/datatype/ADatatype.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -41,6 +40,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "vision_msgs/msg/detection3_d_array.hpp"
+#include <depthai/pipeline/datatype/ADatatype.hpp>
 namespace depthai_ros_driver {
 class MobilenetCamera : public BaseCamera {
 public:
@@ -53,13 +53,11 @@ private:
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
   void det_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
-  void setup_publishers() override;
-  void setup_pipeline() override;
 
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
   std::shared_ptr<dai::node::XLinkOut> xout_nn_, xout_bbdm_;
   std::shared_ptr<dai::DataOutputQueue> detection_nn_q_, bbdm_q_;
-
+  std::string nn_path_;
   bool sync_nn_ = true;
 };
 } // namespace depthai_ros_driver

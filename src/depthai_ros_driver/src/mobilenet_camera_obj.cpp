@@ -26,13 +26,14 @@
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai/pipeline/datatype/ADatatype.hpp"
+#include "depthai_ros_driver/params_rgb.hpp"
 
 namespace depthai_ros_driver {
 MobilenetCamera::MobilenetCamera(const rclcpp::NodeOptions &options)
     : BaseCamera("camera", options) {}
 
 void MobilenetCamera::on_configure() {
-  declare_basic_params();
+  declare_rgb_depth_params();
   std::string default_nn_path =
       ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
       "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
@@ -44,14 +45,15 @@ void MobilenetCamera::on_configure() {
 }
 
 void MobilenetCamera::setup_pipeline() {
-  pipeline_ = std::make_unique<dai::Pipeline>();
-  preview_size_ = 300;
-  set_interleaved_ = false;
+  rgb_params::RGBInitConfig config;
+  config.preview_size = 300;
+  override_init_rgb_config(config);
   setup_rgb();
   setup_stereo();
   setup_all_xout_streams();
-  nn_ = pipeline_->create<dai::node::MobileNetSpatialDetectionNetwork>();
-
+  auto pipeline = get_pipeline();
+  nn_ = pipeline->create<dai::node::MobileNetSpatialDetectionNetwork>();
+  link_spatial_detection(nn_);
   nn_->setConfidenceThreshold(0.5);
   nn_->setBlobPath(nn_path_);
   nn_->setNumInferenceThreads(2);
@@ -60,7 +62,7 @@ void MobilenetCamera::setup_pipeline() {
   nn_->setDepthUpperThreshold(5000);
   nn_->setBoundingBoxScaleFactor(0.3);
 
-  xout_nn_ = pipeline_->create<dai::node::XLinkOut>();
+  xout_nn_ = pipeline->create<dai::node::XLinkOut>();
 
   xout_nn_->setStreamName("nn");
 
@@ -83,7 +85,6 @@ void MobilenetCamera::setup_publishers() {
 void MobilenetCamera::det_cb(const std::string &name,
                              const std::shared_ptr<dai::ADatatype> &data) {
   auto in_det = std::dynamic_pointer_cast<dai::SpatialImgDetections>(data);
-  RCLCPP_INFO(this->get_logger(), "A");
   auto detections = in_det->detections;
   vision_msgs::msg::Detection3DArray ros_det;
   ros_det.header.frame_id = rgb_frame_;
@@ -114,3 +115,5 @@ void MobilenetCamera::det_cb(const std::string &name,
 }
 
 } // namespace depthai_ros_driver
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::MobilenetCamera);

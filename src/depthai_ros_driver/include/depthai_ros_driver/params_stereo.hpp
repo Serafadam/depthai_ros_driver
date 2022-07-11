@@ -58,25 +58,25 @@ struct StereoRuntimeConfig {
   bool set_man_exposure = false;
 };
 struct StereoParamNames {
-  const std::string mono_fps = "h_mono_fps";
-  const std::string mono_resolution = "h_mono_resolution";
-  const std::string align_depth = "h_align_depth";
-  const std::string lr_check = "h_lr_check";
-  const std::string lrc_threshold = "h_lrc_threshold";
-  const std::string depth_filter_size = "h_depth_filter_size";
-  const std::string stereo_conf_threshold = "h_stereo_depth_threshold";
-  const std::string subpixel = "h_subpixel";
-  const std::string extended_disp = "h_extended_disp";
-  const std::string rectify_edge_fill_color = "h_rectify_edge_fill_color";
-  const std::string enable_speckle_filter = "h_enable_speckle_filter";
-  const std::string speckle_range = "h_speckle_range";
-  const std::string enable_temporal_filter = "h_enable_temporal_filter";
-  const std::string enable_spatial_filter = "h_enable_spatial_filter";
-  const std::string hole_filling_radius = "h_hole_filling_radius";
-  const std::string spatial_filter_iterations = "h_spatial_filter_iterations";
-  const std::string threshold_filter_min_range = "h_threshold_filter_min_range";
-  const std::string threshold_filter_max_range = "h_threshold_filter_max_range";
-  const std::string decimation_factor = "h_decimation_factor";
+  const std::string mono_fps = "i_mono_fps";
+  const std::string mono_resolution = "i_mono_resolution";
+  const std::string align_depth = "i_align_depth";
+  const std::string lr_check = "i_lr_check";
+  const std::string lrc_threshold = "i_lrc_threshold";
+  const std::string depth_filter_size = "i_depth_filter_size";
+  const std::string stereo_conf_threshold = "i_stereo_depth_threshold";
+  const std::string subpixel = "i_subpixel";
+  const std::string extended_disp = "i_extended_disp";
+  const std::string rectify_edge_fill_color = "i_rectify_edge_fill_color";
+  const std::string enable_speckle_filter = "i_enable_speckle_filter";
+  const std::string speckle_range = "i_speckle_range";
+  const std::string enable_temporal_filter = "i_enable_temporal_filter";
+  const std::string enable_spatial_filter = "i_enable_spatial_filter";
+  const std::string hole_filling_radius = "i_hole_filling_radius";
+  const std::string spatial_filter_iterations = "i_spatial_filter_iterations";
+  const std::string threshold_filter_min_range = "i_threshold_filter_min_range";
+  const std::string threshold_filter_max_range = "i_threshold_filter_max_range";
+  const std::string decimation_factor = "i_decimation_factor";
   const std::vector<std::string> name_vector = {mono_fps,
                                                 mono_resolution,
                                                 lr_check,
@@ -97,9 +97,9 @@ struct StereoParamNames {
                                                 decimation_factor};
 };
 
-class StereoParams {
+class StereoParamsHandler {
 public:
-  StereoParams();
+  StereoParamsHandler();
   void declare_depth_params(rclcpp::Node *node);
   void set_runtime_config(const std::vector<rclcpp::Parameter> &params);
   dai::CameraControl get_depth_control();
@@ -107,13 +107,9 @@ public:
                             std::shared_ptr<dai::node::MonoCamera> &mono_left,
                             std::shared_ptr<dai::node::MonoCamera> &mono_right,
                             const rclcpp::Logger &logger);
-  void set_init_config(const StereoInitConfig &config) {
-    init_config_ = config;
-  }
-  void set_runtime_config(const StereoRuntimeConfig &config) {
-    runtime_config_ = config;
-  }
-  StereoParamNames get_param_names();
+    void set_init_config(const StereoInitConfig &config);
+    void set_runtime_config(const StereoRuntimeConfig &config);
+    StereoParamNames get_param_names();
   StereoInitConfig get_init_config();
   StereoRuntimeConfig get_runtime_config();
 

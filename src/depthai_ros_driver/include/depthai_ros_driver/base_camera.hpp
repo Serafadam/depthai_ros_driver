@@ -21,6 +21,8 @@
 #define DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
 
 #include <cstdint>
+#include <depthai/pipeline/node/NeuralNetwork.hpp>
+#include <depthai/pipeline/node/SpatialDetectionNetwork.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -76,14 +78,14 @@ struct BaseCameraConfig {
   std::string camera_ip;
 };
 struct BaseCameraParamNames {
-  const std::string max_q_size = "h_max_q_size";
-  const std::string enable_rgb = "h_enable_rgb";
-  const std::string enable_depth = "h_enable_depth";
-  const std::string enable_lr = "h_enable_lr";
-  const std::string enable_imu = "h_enable_imu";
-  const std::string enable_recording = "h_enable_recording";
-  const std::string camera_mxid = "h_camera_mxid";
-  const std::string camera_ip = "h_camera_ip";
+  const std::string max_q_size = "i_max_q_size";
+  const std::string enable_rgb = "i_enable_rgb";
+  const std::string enable_depth = "i_enable_depth";
+  const std::string enable_lr = "i_enable_lr";
+  const std::string enable_imu = "i_enable_imu";
+  const std::string enable_recording = "i_enable_recording";
+  const std::string camera_mxid = "i_camera_mxid";
+  const std::string camera_ip = "i_camera_ip";
 };
 class BaseCamera : public rclcpp::Node {
   using Trigger = std_srvs::srv::Trigger;
@@ -117,14 +119,6 @@ public:
 
   virtual void declare_rgb_depth_params();
   virtual void declare_common_params();
-  sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
-                                             const char *encoding,
-                                             const std::string &frame_id,
-                                             rclcpp::Time stamp);
-  void publish_img(const cv::Mat &img, const char *encoding,
-                   sensor_msgs::msg::CameraInfo &info,
-                   const image_transport::CameraPublisher &pub,
-                   rclcpp::Time stamp);
 
   void setup_rgb_xout();
   void setup_depth_xout();
@@ -139,12 +133,6 @@ public:
   void enable_depth_q();
   void setup_imu_q();
   void setup_lr_q();
-  void enc_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
-  void imu_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
-  void logger_cb(const std::string &name,
-                 const std::shared_ptr<dai::ADatatype> &data);
   void setup_recording_q();
   void setup_control_q();
   void setup_logger_q();
@@ -152,8 +140,37 @@ public:
   parameter_cb(const std::vector<rclcpp::Parameter> &params);
   void setup_config_q();
   void setup_all_queues();
+  void override_init_rgb_config(const rgb_params::RGBInitConfig &config);
+  void override_runtime_rgb_config(const rgb_params::RGBRuntimeConfig &config);
+  void
+  override_init_stereo_config(const stereo_params::StereoInitConfig &config);
+  void override_runtime_stereo_config(
+      const stereo_params::StereoRuntimeConfig &config);
+  void override_base_config(const BaseCameraConfig &config);
 
+    std::shared_ptr<dai::Pipeline> get_pipeline();
+  void link_spatial_detection(std::shared_ptr<dai::node::SpatialDetectionNetwork> nn);
+    std::string get_frame_id(const dai::CameraBoardSocket &socket);
+    dai::DataOutputQueue get_output_q(const std::string &q_name,
+                             int max_q_size = (base_config_.max_q_size),
+                             bool blocking = false);
 private:
+  sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
+                                             const char *encoding,
+                                             const std::string &frame_id,
+                                             rclcpp::Time stamp);
+  void publish_img(const cv::Mat &img, const char *encoding,
+                   sensor_msgs::msg::CameraInfo &info,
+                   const image_transport::CameraPublisher &pub,
+                   rclcpp::Time stamp);
+
+  void enc_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
+  void imu_cb(const std::string &name,
+              const std::shared_ptr<dai::ADatatype> &data);
+  void logger_cb(const std::string &name,
+                 const std::shared_ptr<dai::ADatatype> &data);
+
   void set_frame_ids();
   rclcpp::Service<Trigger>::SharedPtr trigger_recording_srv_, restart_cam_srv_,
       start_cam_srv_, shutdown_cam_srv_;
@@ -162,11 +179,11 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<DiagnosticArray>::SharedPtr diag_pub_;
   sensor_msgs::msg::CameraInfo rgb_info_, depth_info_, left_info_, right_info_;
-  std::unique_ptr<rgb_params::RGBParams> rgb_params_;
-  std::unique_ptr<stereo_params::StereoParams> stereo_params_;
+  std::unique_ptr<rgb_params::RGBParamsHandler> rgb_params_handler_;
+  std::unique_ptr<stereo_params::StereoParamsHandler> stereo_params_handler_;
   BaseCameraConfig base_config_;
   BaseCameraParamNames base_param_names_;
-  std::unique_ptr<dai::Pipeline> pipeline_;
+  std::shared_ptr<dai::Pipeline> pipeline_;
   std::unique_ptr<dai::Device> device_;
   std::shared_ptr<dai::node::ColorCamera> camrgb_;
   std::shared_ptr<dai::node::MonoCamera> mono_left_;

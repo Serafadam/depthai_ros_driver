@@ -26,17 +26,17 @@
 
 namespace depthai_ros_driver {
 namespace rgb_params {
-RGBParams::RGBParams(){};
+RGBParamsHandler::RGBParamsHandler(){};
 
 rcl_interfaces::msg::ParameterDescriptor
-RGBParams::get_ranged_int_descriptor(int min, int max) {
+RGBParamsHandler::get_ranged_int_descriptor(int min, int max) {
   rcl_interfaces::msg::ParameterDescriptor desc;
   desc.integer_range.resize(1);
   desc.integer_range.at(0).from_value = min;
   desc.integer_range.at(0).to_value = max;
   return desc;
 }
-void RGBParams::declare_rgb_params(rclcpp::Node *node) {
+void RGBParamsHandler::declare_rgb_params(rclcpp::Node *node) {
   init_config_.rgb_fps = node->declare_parameter<double>(param_names_.rgb_fps,
                                                          init_config_.rgb_fps);
   init_config_.rgb_width = node->declare_parameter<uint16_t>(
@@ -73,7 +73,7 @@ void RGBParams::declare_rgb_params(rclcpp::Node *node) {
       param_names_.whitebalance, runtime_config_.whitebalance,
       get_ranged_int_descriptor(1000, 12000));
 }
-void RGBParams::set_init_config(const std::vector<rclcpp::Parameter> &params) {
+void RGBParamsHandler::set_init_config(const std::vector<rclcpp::Parameter> &params) {
   for (const auto &p : params) {
     if (p.get_name() == param_names_.rgb_fps) {
       init_config_.rgb_fps = p.get_value<double>();
@@ -96,7 +96,13 @@ void RGBParams::set_init_config(const std::vector<rclcpp::Parameter> &params) {
     }
   }
 }
-void RGBParams::set_runtime_config(
+  void RGBParamsHandler::set_init_config(const RGBInitConfig &config){
+    init_config_ = config;
+  }
+  void RGBParamsHandler::set_runtime_config(const RGBRuntimeConfig &config){
+    runtime_config_ = config;
+  }
+void RGBParamsHandler::set_runtime_config(
     const std::vector<rclcpp::Parameter> &params) {
   for (const auto &p : params) {
     if (p.get_name() == param_names_.set_man_exposure) {
@@ -116,7 +122,7 @@ void RGBParams::set_runtime_config(
     }
   }
 }
-dai::CameraControl RGBParams::get_rgb_control() {
+dai::CameraControl RGBParamsHandler::get_rgb_control() {
   dai::CameraControl ctrl;
   if (runtime_config_.set_man_exposure) {
     ctrl.setManualExposure(runtime_config_.rgb_exposure,
@@ -138,7 +144,7 @@ dai::CameraControl RGBParams::get_rgb_control() {
   }
   return ctrl;
 }
-void RGBParams::setup_rgb(std::shared_ptr<dai::node::ColorCamera> &camrgb,
+void RGBParamsHandler::setup_rgb(std::shared_ptr<dai::node::ColorCamera> &camrgb,
                           const rclcpp::Logger &logger) {
   RCLCPP_INFO(logger, "Preview size %d", init_config_.preview_size);
   camrgb->setPreviewSize(init_config_.preview_size, init_config_.preview_size);
@@ -165,8 +171,8 @@ void RGBParams::setup_rgb(std::shared_ptr<dai::node::ColorCamera> &camrgb,
               init_config_.keep_preview_aspect_ratio);
   camrgb->setPreviewKeepAspectRatio(init_config_.keep_preview_aspect_ratio);
 }
-RGBParamNames RGBParams::get_param_names() { return param_names_; }
-RGBInitConfig RGBParams::get_init_config() { return init_config_; }
-RGBRuntimeConfig RGBParams::get_runtime_config() { return runtime_config_; }
+RGBParamNames RGBParamsHandler::get_param_names() { return param_names_; }
+RGBInitConfig RGBParamsHandler::get_init_config() { return init_config_; }
+RGBRuntimeConfig RGBParamsHandler::get_runtime_config() { return runtime_config_; }
 } // namespace rgb_params
 } // namespace depthai_ros_driver

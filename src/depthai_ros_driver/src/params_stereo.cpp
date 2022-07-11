@@ -25,8 +25,8 @@
 namespace depthai_ros_driver {
 namespace stereo_params {
 
-StereoParams::StereoParams(){};
-void StereoParams::declare_depth_params(rclcpp::Node *node) {
+StereoParamsHandler::StereoParamsHandler(){};
+void StereoParamsHandler::declare_depth_params(rclcpp::Node *node) {
   init_config_.mono_fps = node->declare_parameter<double>(
       param_names_.mono_fps, init_config_.mono_fps);
   init_config_.mono_resolution = node->declare_parameter<std::string>(
@@ -70,13 +70,13 @@ void StereoParams::declare_depth_params(rclcpp::Node *node) {
   init_config_.align_depth = node->declare_parameter<bool>(
       param_names_.align_depth, init_config_.align_depth);
 }
-void StereoParams::set_runtime_config(
+void StereoParamsHandler::set_runtime_config(
     const std::vector<rclcpp::Parameter> &params) {}
-dai::CameraControl StereoParams::get_depth_control() {
+dai::CameraControl StereoParamsHandler::get_depth_control() {
   dai::CameraControl ctrl;
   return ctrl;
 }
-void StereoParams::setup_stereo(
+void StereoParamsHandler::setup_stereo(
     std::shared_ptr<dai::node::StereoDepth> &stereo,
     std::shared_ptr<dai::node::MonoCamera> &mono_left,
     std::shared_ptr<dai::node::MonoCamera> &mono_right,
@@ -121,9 +121,15 @@ void StereoParams::setup_stereo(
       init_config_.decimation_factor;
   stereo->initialConfig.set(config);
 }
-StereoParamNames StereoParams::get_param_names() { return param_names_; }
-StereoInitConfig StereoParams::get_init_config() { return init_config_; }
-StereoRuntimeConfig StereoParams::get_runtime_config() {
+  void StereoParamsHandler::set_init_config(const StereoInitConfig &config) {
+    init_config_ = config;
+  }
+  void StereoParamsHandler::set_runtime_config(const StereoRuntimeConfig &config){
+    runtime_config_ = config;
+  }
+StereoParamNames StereoParamsHandler::get_param_names() { return param_names_; }
+StereoInitConfig StereoParamsHandler::get_init_config() { return init_config_; }
+StereoRuntimeConfig StereoParamsHandler::get_runtime_config() {
   return runtime_config_;
 }
 
