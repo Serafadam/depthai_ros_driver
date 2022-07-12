@@ -43,9 +43,9 @@ def generate_launch_description():
                         name="camera",
                         parameters=[
                             {
-                                "h_rgb_fps": 60.0,
-                                "h_enable_depth": False,
-                                "h_enable_lr": False,
+                                "i_rgb_fps": 60.0,
+                                "i_enable_depth": False,
+                                "i_enable_lr": False,
                             }
                         ],
                     ),

@@ -21,8 +21,6 @@
 #define DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
 
 #include <cstdint>
-#include <depthai/pipeline/node/NeuralNetwork.hpp>
-#include <depthai/pipeline/node/SpatialDetectionNetwork.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -41,6 +39,8 @@
 #include "depthai/pipeline/datatype/StereoDepthConfig.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "depthai/pipeline/node/IMU.hpp"
+#include "depthai/pipeline/node/NeuralNetwork.hpp"
+#include "depthai/pipeline/node/SpatialDetectionNetwork.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/SystemLogger.hpp"
 #include "depthai/pipeline/node/VideoEncoder.hpp"
@@ -120,13 +120,13 @@ public:
   virtual void declare_rgb_depth_params();
   virtual void declare_common_params();
 
-  void setup_rgb_xout();
-  void setup_depth_xout();
-  void setup_lr_xout();
-  void setup_imu_xout();
-  void setup_logger_xout();
-  void setup_record_xout();
-  void setup_all_xout_streams();
+  virtual void setup_rgb_xout();
+  virtual void setup_depth_xout();
+  virtual void setup_lr_xout();
+  virtual void setup_imu_xout();
+  virtual void setup_logger_xout();
+  virtual void setup_record_xout();
+  virtual void setup_all_xout_streams();
   void regular_queue_cb(const std::string &name,
                         const std::shared_ptr<dai::ADatatype> &data);
   void enable_rgb_q();
@@ -148,12 +148,15 @@ public:
       const stereo_params::StereoRuntimeConfig &config);
   void override_base_config(const BaseCameraConfig &config);
 
-    std::shared_ptr<dai::Pipeline> get_pipeline();
-  void link_spatial_detection(std::shared_ptr<dai::node::SpatialDetectionNetwork> nn);
-    std::string get_frame_id(const dai::CameraBoardSocket &socket);
-    dai::DataOutputQueue get_output_q(const std::string &q_name,
-                             int max_q_size = (base_config_.max_q_size),
-                             bool blocking = false);
+  std::shared_ptr<dai::Pipeline> get_pipeline();
+  void link_spatial_detection(
+      std::shared_ptr<dai::node::SpatialDetectionNetwork> nn);
+  std::string get_frame_id(const dai::CameraBoardSocket &socket);
+  std::shared_ptr<dai::DataOutputQueue> get_output_q(const std::string &q_name,
+                                                     uint8_t max_q_size = 4,
+                                                     bool blocking = false);
+  std::vector<std::string> get_default_label_map();
+
 private:
   sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
                                              const char *encoding,
@@ -217,7 +220,7 @@ private:
       "cow",        "diningtable", "dog",     "horse", "motorbike",
       "person",     "pottedplant", "sheep",   "sofa",  "train",
       "tvmonitor"};
-  std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids;
+  std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids_;
 };
 } // namespace depthai_ros_driver
 

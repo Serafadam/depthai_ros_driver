@@ -28,7 +28,7 @@ ament_auto_add_library(
   src/params_rgb.cpp
   src/params_stereo.cpp
   src/rgbd_camera_obj.cpp
-  #src/mobilenet_camera_obj.cpp
+  src/mobilenet_camera_obj.cpp
   #src/segmentation_camera_obj.cpp
 )
 
@@ -40,6 +40,7 @@ target_link_libraries(
   ${OpenCV_LIBRARIES}
 )
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::RGBDCamera")
+rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::MobilenetCamera")
 ament_export_include_directories(include)
 
 if(BUILD_TESTING)

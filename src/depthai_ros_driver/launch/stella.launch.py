@@ -44,7 +44,11 @@ def generate_launch_description():
                         plugin="depthai_ros_driver::RGBDCamera",
                         name="camera",
                         parameters=[
-                            {"h_fps": 60.0, "h_rgb_width": 1280, "h_rgb_height": 720}
+                            {
+                                "i_rgb_fps": 60.0,
+                                "i_rgb_width": 1280,
+                                "i_rgb_height": 720,
+                            }
                         ],
                     ),
                 ],

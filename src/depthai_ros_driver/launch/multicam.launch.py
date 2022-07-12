@@ -52,10 +52,10 @@ def launch_setup(context, *args, **kwargs):
             name=cam_name,
             parameters=[
                 {
-                    "h_fps": 60.0,
-                    "h_rgb_width": 1280,
-                    "h_rgb_height": 720,
-                    "h_camera_mxid": cam_mx_id,
+                    "i_rgb_fps": 60.0,
+                    "i_rgb_width": 1280,
+                    "i_rgb_height": 720,
+                    "i_camera_mxid": cam_mx_id,
                 }
             ],
         )

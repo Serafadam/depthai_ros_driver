@@ -21,14 +21,14 @@
 #include "cv_bridge/cv_bridge.h"
 
 #include <cstdint>
-#include <depthai-shared/common/CameraBoardSocket.hpp>
-#include <depthai/device/DataQueue.hpp>
-#include <depthai/pipeline/datatype/ADatatype.hpp>
 #include <memory>
 
+#include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "depthai-shared/common/UsbSpeed.hpp"
+#include "depthai/device/DataQueue.hpp"
 #include "depthai/device/DeviceBase.hpp"
 #include "depthai/pipeline/Pipeline.hpp"
+#include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/pipeline/datatype/IMUData.hpp"
 #include "depthai/pipeline/datatype/SystemInformation.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
@@ -72,13 +72,13 @@ BaseCamera::BaseCamera(
   setup_logger_xout();
 }
 
-void BaseCamera::restart_cb(const Trigger::Request::SharedPtr req,
+void BaseCamera::restart_cb(const Trigger::Request::SharedPtr /*req*/,
                             Trigger::Response::SharedPtr res) {
   restart_device();
   res->success = true;
 }
 
-void BaseCamera::start_cb(const Trigger::Request::SharedPtr req,
+void BaseCamera::start_cb(const Trigger::Request::SharedPtr /*req*/,
                           Trigger::Response::SharedPtr res) {
   if (cam_running_) {
     RCLCPP_INFO(this->get_logger(), "Camera already running.");
@@ -93,14 +93,14 @@ void BaseCamera::set_frame_ids() {
   std::string frame_prefix = this->get_name();
   frame_prefix.append("_");
   RCLCPP_INFO(this->get_logger(), "Frame prefix: %s", frame_prefix.c_str());
-  frame_ids = {
+  frame_ids_ = {
       {dai::CameraBoardSocket::RGB, frame_prefix + "color_frame"},
       {dai::CameraBoardSocket::AUTO, frame_prefix + "color_frame"},
       {dai::CameraBoardSocket::LEFT, frame_prefix + "left_frame"},
       {dai::CameraBoardSocket::RIGHT, frame_prefix + "right_frame"},
   };
 }
-void BaseCamera::shutdown_cb(const Trigger::Request::SharedPtr req,
+void BaseCamera::shutdown_cb(const Trigger::Request::SharedPtr /*req*/,
                              Trigger::Response::SharedPtr res) {
   RCLCPP_INFO(this->get_logger(), "Shutting down camera");
   if (!cam_running_) {
@@ -430,7 +430,7 @@ void BaseCamera::enable_rgb_q() {
   rgb_pub_ =
       image_transport::create_camera_publisher(this, "~/color/image_raw");
   rgb_info_ =
-      get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RGB),
+      get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RGB),
                       dai::CameraBoardSocket::RGB,
                       rgb_params_handler_->get_init_config().rgb_width,
                       rgb_params_handler_->get_init_config().rgb_height);
@@ -443,13 +443,13 @@ void BaseCamera::enable_depth_q() {
       image_transport::create_camera_publisher(this, "~/depth/image_raw");
   if (stereo_params_handler_->get_init_config().align_depth) {
     depth_info_ =
-        get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RGB),
+        get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RGB),
                         dai::CameraBoardSocket::RGB,
                         rgb_params_handler_->get_init_config().rgb_width,
                         rgb_params_handler_->get_init_config().rgb_height);
   } else {
     depth_info_ =
-        get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RIGHT),
+        get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RIGHT),
                         dai::CameraBoardSocket::RIGHT);
   }
   depth_q_ =
@@ -462,12 +462,12 @@ void BaseCamera::setup_lr_q() {
   left_pub_ =
       image_transport::create_camera_publisher(this, "~/left/image_raw");
   left_info_ =
-      get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::LEFT),
+      get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::LEFT),
                       dai::CameraBoardSocket::LEFT);
   right_pub_ =
       image_transport::create_camera_publisher(this, "~/right/image_raw");
   right_info_ =
-      get_calibration(device_, frame_ids.at(dai::CameraBoardSocket::RIGHT),
+      get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RIGHT),
                       dai::CameraBoardSocket::RIGHT);
 
   left_q_ =
@@ -559,11 +559,22 @@ void BaseCamera::setup_all_queues() {
       std::bind(&BaseCamera::parameter_cb, this, std::placeholders::_1));
 }
 std::shared_ptr<dai::Pipeline> BaseCamera::get_pipeline() { return pipeline_; }
-dai::DataOutputQueue
-BaseCamera::get_output_q(const std::string &q_name,
-                             int max_q_size = (base_config_.max_q_size),
-                             bool blocking = false) {}
-std::string get_frame_id(const dai::CameraBoardSocket &socket) {}
+std::shared_ptr<dai::DataOutputQueue>
+BaseCamera::get_output_q(const std::string &q_name, uint8_t max_q_size,
+                         bool blocking) {
+  return device_->getOutputQueue(q_name, max_q_size, blocking);
+}
+std::string BaseCamera::get_frame_id(const dai::CameraBoardSocket &socket) {
+  return frame_ids_.at(socket);
+}
+std::vector<std::string> BaseCamera::get_default_label_map() {
+  return default_label_map_;
+}
+void BaseCamera::link_spatial_detection(
+    std::shared_ptr<dai::node::SpatialDetectionNetwork> nn) {
+  camrgb_->preview.link(nn->input);
+  stereo_->depth.link(nn->inputDepth);
+}
 void BaseCamera::override_init_rgb_config(
     const rgb_params::RGBInitConfig &config) {
   rgb_params_handler_->set_init_config(config);

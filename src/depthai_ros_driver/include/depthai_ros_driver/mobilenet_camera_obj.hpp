@@ -50,14 +50,17 @@ public:
   void on_configure() override;
 
 private:
-  rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
+  void setup_pipeline();
+  void setup_publishers();
   void det_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
 
+  rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
   std::shared_ptr<dai::node::XLinkOut> xout_nn_, xout_bbdm_;
   std::shared_ptr<dai::DataOutputQueue> detection_nn_q_, bbdm_q_;
   std::string nn_path_;
+  std::vector<std::string> label_map_;
   bool sync_nn_ = true;
 };
 } // namespace depthai_ros_driver
