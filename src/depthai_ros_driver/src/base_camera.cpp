@@ -537,7 +537,7 @@ void BaseCamera::setup_config_q() {
   config_q_ = device_->getInputQueue(config_q_name_);
 }
 void BaseCamera::setup_logger_q() {
-  diag_pub_ = this->create_publisher<DiagnosticArray>("/diagnostics", 10);
+  diag_pub_ = this->create_publisher<DiagnosticArray>("~/diagnostics", 10);
 
   logger_q_ =
       device_->getOutputQueue(logger_q_name_, base_config_.max_q_size, false);
