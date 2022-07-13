@@ -18,6 +18,7 @@ def launch_setup(context, *args, **kwargs):
 
     depthai_prefix = get_package_share_directory("depthai_ros_driver")
     rviz_config = os.path.join(depthai_prefix, "config", "multicam.rviz")
+    # put mx_ids here
     cams = {"cam_1": "", "cam_2": ""}
     tf_publishers = []
     nodes = []

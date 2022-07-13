@@ -76,6 +76,7 @@ struct BaseCameraConfig
   bool enable_lr;
   bool enable_imu;
   bool enable_recording;
+  bool enable_logging;
   std::string camera_mxid;
   std::string camera_ip;
 };
@@ -87,6 +88,7 @@ struct BaseCameraParamNames
   const std::string enable_lr = "i_enable_lr";
   const std::string enable_imu = "i_enable_imu";
   const std::string enable_recording = "i_enable_recording";
+  const std::string enable_logging = "i_enable_logging";
   const std::string camera_mxid = "i_camera_mxid";
   const std::string camera_ip = "i_camera_ip";
 };
