@@ -22,6 +22,7 @@
 #include "sensor_msgs/msg/camera_info.hpp"
 
 namespace depthai_ros_driver {
+  namespace calibration{
 sensor_msgs::msg::CameraInfo
 get_calibration(std::unique_ptr<dai::Device> &device,
                 const std::string &frame_id, dai::CameraBoardSocket socket,
@@ -79,4 +80,5 @@ get_calibration(std::unique_ptr<dai::Device> &device,
   info.header.frame_id = frame_id;
   return info;
 }
+  } // namespace calibration
 } // namespace depthai_ros_driver

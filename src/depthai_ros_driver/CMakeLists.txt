@@ -29,7 +29,7 @@ ament_auto_add_library(
   src/params_stereo.cpp
   src/rgbd_camera_obj.cpp
   src/mobilenet_camera_obj.cpp
-  #src/segmentation_camera_obj.cpp
+  src/segmentation_camera_obj.cpp
 )
 
 ament_target_dependencies(${PROJECT_NAME} ${DEPENDENCIES})
@@ -41,6 +41,7 @@ target_link_libraries(
 )
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::RGBDCamera")
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::MobilenetCamera")
+rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::SegmentationCamera")
 ament_export_include_directories(include)
 
 if(BUILD_TESTING)

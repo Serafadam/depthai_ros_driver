@@ -17,8 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef DEPTHAI_ROS_DRIVER__CALIBRATION_HPP_
-#define DEPTHAI_ROS_DRIVER__CALIBRATION_HPP_
+#ifndef SRC_DEPTHAI_ROS_DRIVER_INCLUDE_DEPTHAI_ROS_DRIVER_CALIBRATION_HPP_
+#define SRC_DEPTHAI_ROS_DRIVER_INCLUDE_DEPTHAI_ROS_DRIVER_CALIBRATION_HPP_
 #include <string>
 
 #include "depthai-shared/common/CameraBoardSocket.hpp"
@@ -26,11 +26,13 @@
 #include "depthai/depthai.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 namespace depthai_ros_driver {
+namespace calibration{
 sensor_msgs::msg::CameraInfo
-get_calibration(std::unique_ptr<dai::Device> &device,
-                const std::string &frame_id, dai::CameraBoardSocket socket,
-                int width = 0, int height = 0,
-                dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
-                dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)});
+        get_calibration(std::unique_ptr<dai::Device> &device,
+                        const std::string &frame_id, dai::CameraBoardSocket socket,
+                        int width = 0, int height = 0,
+                        dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
+                        dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)});
+} // namespace calibration
 } // namespace depthai_ros_driver
-#endif // DEPTHAI_ROS_DRIVER__CALIBRATION_HPP_
+#endif /* SRC_DEPTHAI_ROS_DRIVER_INCLUDE_DEPTHAI_ROS_DRIVER_CALIBRATION_HPP_ */

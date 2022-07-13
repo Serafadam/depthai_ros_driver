@@ -426,11 +426,20 @@ void BaseCamera::logger_cb(const std::string &name,
   diag.status[0].message = msg.str();
   diag_pub_->publish(diag);
 }
+sensor_msgs::msg::CameraInfo
+BaseCamera::get_calibration(
+                const std::string &frame_id, dai::CameraBoardSocket socket,
+                int width, int height ,
+                dai::Point2f top_left_pixel_id ,
+                dai::Point2f bottom_right_pixel_id){
+
+return calibration::get_calibration(device_, frame_id, socket, width, height, top_left_pixel_id, bottom_right_pixel_id);
+                }
 void BaseCamera::enable_rgb_q() {
   rgb_pub_ =
       image_transport::create_camera_publisher(this, "~/color/image_raw");
   rgb_info_ =
-      get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RGB),
+      get_calibration(frame_ids_.at(dai::CameraBoardSocket::RGB),
                       dai::CameraBoardSocket::RGB,
                       rgb_params_handler_->get_init_config().rgb_width,
                       rgb_params_handler_->get_init_config().rgb_height);
@@ -443,13 +452,13 @@ void BaseCamera::enable_depth_q() {
       image_transport::create_camera_publisher(this, "~/depth/image_raw");
   if (stereo_params_handler_->get_init_config().align_depth) {
     depth_info_ =
-        get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RGB),
+        get_calibration(frame_ids_.at(dai::CameraBoardSocket::RGB),
                         dai::CameraBoardSocket::RGB,
                         rgb_params_handler_->get_init_config().rgb_width,
                         rgb_params_handler_->get_init_config().rgb_height);
   } else {
     depth_info_ =
-        get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RIGHT),
+        get_calibration(frame_ids_.at(dai::CameraBoardSocket::RIGHT),
                         dai::CameraBoardSocket::RIGHT);
   }
   depth_q_ =
@@ -462,12 +471,12 @@ void BaseCamera::setup_lr_q() {
   left_pub_ =
       image_transport::create_camera_publisher(this, "~/left/image_raw");
   left_info_ =
-      get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::LEFT),
+      get_calibration(frame_ids_.at(dai::CameraBoardSocket::LEFT),
                       dai::CameraBoardSocket::LEFT);
   right_pub_ =
       image_transport::create_camera_publisher(this, "~/right/image_raw");
   right_info_ =
-      get_calibration(device_, frame_ids_.at(dai::CameraBoardSocket::RIGHT),
+      get_calibration(frame_ids_.at(dai::CameraBoardSocket::RIGHT),
                       dai::CameraBoardSocket::RIGHT);
 
   left_q_ =
@@ -569,6 +578,10 @@ std::string BaseCamera::get_frame_id(const dai::CameraBoardSocket &socket) {
 }
 std::vector<std::string> BaseCamera::get_default_label_map() {
   return default_label_map_;
+}
+
+void BaseCamera::link_nn(std::shared_ptr<dai::node::NeuralNetwork> nn){
+  camrgb_->preview.link(nn->input);
 }
 void BaseCamera::link_spatial_detection(
     std::shared_ptr<dai::node::SpatialDetectionNetwork> nn) {

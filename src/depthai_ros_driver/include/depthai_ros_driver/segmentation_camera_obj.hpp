@@ -23,12 +23,12 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <chrono>
-#include <depthai/pipeline/datatype/ADatatype.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/depthai.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
 #include "depthai/pipeline/node/MonoCamera.hpp"
@@ -53,35 +53,25 @@ public:
   void on_configure() override;
 
 private:
-  image_transport::CameraPublisher depth_pub_;
-  image_transport::CameraPublisher cropped_depth_pub_;
-  image_transport::CameraPublisher masked_preview_pub_;
-  image_transport::CameraPublisher preview_pub_;
   image_transport::CameraPublisher mask_pub_;
   sensor_msgs::msg::CameraInfo cropped_info_;
-  void timer_cb();
-  void setup_publishers() override;
-  void setup_pipeline() override;
+  void setup_publishers();
+  void setup_pipeline();
   void seg_cb(const std::string &name,
               const std::shared_ptr<dai::ADatatype> &data);
   void filter_out_detections(std::vector<int> &det);
-  void square_crop(cv::Mat &frame);
-  void resize_and_get_mask(cv::Mat &seg_colored_src, cv::Mat &depth_frame_src,
-                           cv::Mat &mask);
-  void colorize_and_mask_depthamap(cv::Mat &depth_src, cv::Mat &depth_colored,
-                                   cv::Mat &mask, cv::Mat &depth_frame_masked);
   cv::Mat decode_deeplab(cv::Mat mat);
 
   std::shared_ptr<dai::node::NeuralNetwork> nn_;
-  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_depth_,
-      xout_video_;
+  std::shared_ptr<dai::node::XLinkOut> xout_nn_;
 
-  std::shared_ptr<dai::DataOutputQueue> preview_q_, segmentation_nn_q_,
-      depth_q_, video_q_;
+  std::shared_ptr<dai::DataOutputQueue> segmentation_nn_q_;
 
   const int classes_num_ = 21;
+  std::string nn_path_;
+  std::vector<std::string> label_map_;
+  std::vector<std::string> default_label_map_;
   std::vector<int> label_map_indexes_;
-  std::atomic<bool> sync_nn{true};
 };
 } // namespace depthai_ros_driver
 

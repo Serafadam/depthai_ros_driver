@@ -20,11 +20,11 @@
 
 #include "depthai_ros_driver/mobilenet_camera_obj.hpp"
 
-#include <depthai-shared/common/CameraBoardSocket.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include <depthai-shared/common/CameraBoardSocket.hpp>
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai_ros_driver/params_rgb.hpp"
@@ -77,7 +77,6 @@ void MobilenetCamera::setup_pipeline() {
   detection_nn_q_->addCallback(std::bind(&MobilenetCamera::det_cb, this,
                                          std::placeholders::_1,
                                          std::placeholders::_2));
-  RCLCPP_INFO(this->get_logger(), "Mobilenet Camera ready.");
 }
 void MobilenetCamera::setup_publishers() {
   det_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>(

@@ -17,8 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
-#define DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
+#ifndef SRC_DEPTHAI_ROS_DRIVER_INCLUDE_DEPTHAI_ROS_DRIVER_BASE_CAMERA_HPP_
+#define SRC_DEPTHAI_ROS_DRIVER_INCLUDE_DEPTHAI_ROS_DRIVER_BASE_CAMERA_HPP_
 
 #include <cstdint>
 #include <functional>
@@ -66,8 +66,10 @@
 #include "sensor_msgs/msg/imu.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
-namespace depthai_ros_driver {
-struct BaseCameraConfig {
+namespace depthai_ros_driver
+{
+struct BaseCameraConfig
+{
   int max_q_size;
   bool enable_rgb;
   bool enable_depth;
@@ -77,7 +79,8 @@ struct BaseCameraConfig {
   std::string camera_mxid;
   std::string camera_ip;
 };
-struct BaseCameraParamNames {
+struct BaseCameraParamNames
+{
   const std::string max_q_size = "i_max_q_size";
   const std::string enable_rgb = "i_enable_rgb";
   const std::string enable_depth = "i_enable_depth";
@@ -87,13 +90,15 @@ struct BaseCameraParamNames {
   const std::string camera_mxid = "i_camera_mxid";
   const std::string camera_ip = "i_camera_ip";
 };
-class BaseCamera : public rclcpp::Node {
+class BaseCamera : public rclcpp::Node
+{
   using Trigger = std_srvs::srv::Trigger;
   using DiagnosticArray = diagnostic_msgs::msg::DiagnosticArray;
 
 public:
-  explicit BaseCamera(const std::string &name,
-                      const rclcpp::NodeOptions &options);
+  explicit BaseCamera(
+    const std::string & name,
+    const rclcpp::NodeOptions & options);
   virtual ~BaseCamera() {}
   virtual void on_configure() {}
 
@@ -107,14 +112,18 @@ public:
   virtual void setup_imu();
   virtual void setup_stereo();
   virtual void setup_logger();
-  void start_cb(const Trigger::Request::SharedPtr req,
-                Trigger::Response::SharedPtr res);
-  void shutdown_cb(const Trigger::Request::SharedPtr req,
-                   Trigger::Response::SharedPtr res);
-  void restart_cb(const Trigger::Request::SharedPtr req,
-                  Trigger::Response::SharedPtr res);
-  void trig_rec_cb(const Trigger::Request::SharedPtr req,
-                   Trigger::Response::SharedPtr res);
+  void start_cb(
+    const Trigger::Request::SharedPtr req,
+    Trigger::Response::SharedPtr res);
+  void shutdown_cb(
+    const Trigger::Request::SharedPtr req,
+    Trigger::Response::SharedPtr res);
+  void restart_cb(
+    const Trigger::Request::SharedPtr req,
+    Trigger::Response::SharedPtr res);
+  void trig_rec_cb(
+    const Trigger::Request::SharedPtr req,
+    Trigger::Response::SharedPtr res);
   void setup_recording();
 
   virtual void declare_rgb_depth_params();
@@ -127,8 +136,9 @@ public:
   virtual void setup_logger_xout();
   virtual void setup_record_xout();
   virtual void setup_all_xout_streams();
-  void regular_queue_cb(const std::string &name,
-                        const std::shared_ptr<dai::ADatatype> &data);
+  void regular_queue_cb(
+    const std::string & name,
+    const std::shared_ptr<dai::ADatatype> & data);
   void enable_rgb_q();
   void enable_depth_q();
   void setup_imu_q();
@@ -137,46 +147,60 @@ public:
   void setup_control_q();
   void setup_logger_q();
   rcl_interfaces::msg::SetParametersResult
-  parameter_cb(const std::vector<rclcpp::Parameter> &params);
+  parameter_cb(const std::vector<rclcpp::Parameter> & params);
   void setup_config_q();
   void setup_all_queues();
-  void override_init_rgb_config(const rgb_params::RGBInitConfig &config);
-  void override_runtime_rgb_config(const rgb_params::RGBRuntimeConfig &config);
+  void override_init_rgb_config(const rgb_params::RGBInitConfig & config);
+  void override_runtime_rgb_config(const rgb_params::RGBRuntimeConfig & config);
   void
-  override_init_stereo_config(const stereo_params::StereoInitConfig &config);
+  override_init_stereo_config(const stereo_params::StereoInitConfig & config);
   void override_runtime_stereo_config(
-      const stereo_params::StereoRuntimeConfig &config);
-  void override_base_config(const BaseCameraConfig &config);
+    const stereo_params::StereoRuntimeConfig & config);
+  void override_base_config(const BaseCameraConfig & config);
 
   std::shared_ptr<dai::Pipeline> get_pipeline();
+  void link_nn(std::shared_ptr<dai::node::NeuralNetwork> nn);
   void link_spatial_detection(
-      std::shared_ptr<dai::node::SpatialDetectionNetwork> nn);
-  std::string get_frame_id(const dai::CameraBoardSocket &socket);
-  std::shared_ptr<dai::DataOutputQueue> get_output_q(const std::string &q_name,
-                                                     uint8_t max_q_size = 4,
-                                                     bool blocking = false);
+    std::shared_ptr<dai::node::SpatialDetectionNetwork> nn);
+  std::string get_frame_id(const dai::CameraBoardSocket & socket);
+  std::shared_ptr<dai::DataOutputQueue> get_output_q(
+    const std::string & q_name,
+    uint8_t max_q_size = 4,
+    bool blocking = false);
   std::vector<std::string> get_default_label_map();
+  void publish_img(
+    const cv::Mat & img, const char * encoding,
+    sensor_msgs::msg::CameraInfo & info,
+    const image_transport::CameraPublisher & pub,
+    rclcpp::Time stamp);
+  sensor_msgs::msg::CameraInfo
+  get_calibration(
+    const std::string & frame_id, dai::CameraBoardSocket socket,
+    int width = 0, int height = 0,
+    dai::Point2f top_left_pixel_id = {(0.0), (0.0)},
+    dai::Point2f bottom_right_pixel_id = {(0.0), (0.0)});
 
 private:
-  sensor_msgs::msg::Image convert_img_to_ros(const cv::Mat &frame,
-                                             const char *encoding,
-                                             const std::string &frame_id,
-                                             rclcpp::Time stamp);
-  void publish_img(const cv::Mat &img, const char *encoding,
-                   sensor_msgs::msg::CameraInfo &info,
-                   const image_transport::CameraPublisher &pub,
-                   rclcpp::Time stamp);
+  sensor_msgs::msg::Image convert_img_to_ros(
+    const cv::Mat & frame,
+    const char * encoding,
+    const std::string & frame_id,
+    rclcpp::Time stamp);
 
-  void enc_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
-  void imu_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
-  void logger_cb(const std::string &name,
-                 const std::shared_ptr<dai::ADatatype> &data);
+
+  void enc_cb(
+    const std::string & name,
+    const std::shared_ptr<dai::ADatatype> & data);
+  void imu_cb(
+    const std::string & name,
+    const std::shared_ptr<dai::ADatatype> & data);
+  void logger_cb(
+    const std::string & name,
+    const std::shared_ptr<dai::ADatatype> & data);
 
   void set_frame_ids();
   rclcpp::Service<Trigger>::SharedPtr trigger_recording_srv_, restart_cam_srv_,
-      start_cam_srv_, shutdown_cam_srv_;
+    start_cam_srv_, shutdown_cam_srv_;
   OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
   image_transport::CameraPublisher rgb_pub_, depth_pub_, left_pub_, right_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
@@ -195,11 +219,11 @@ private:
   std::shared_ptr<dai::node::SystemLogger> logger_;
   std::shared_ptr<dai::node::IMU> imu_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_depth_, xout_left_,
-      xout_right_, xout_enc_, xout_imu_, xout_logger_;
+    xout_right_, xout_enc_, xout_imu_, xout_logger_;
   std::shared_ptr<dai::node::XLinkIn> xin_config_, xin_control_;
   std::shared_ptr<dai::node::VideoEncoder> video_enc_;
   std::shared_ptr<dai::DataOutputQueue> rgb_q_, depth_q_, left_q_, right_q_,
-      enc_q_, imu_q_, logger_q_;
+    enc_q_, imu_q_, logger_q_;
   std::shared_ptr<dai::DataInputQueue> config_q_, control_q_;
   std::ofstream video_file_;
   std::string rgb_frame_, left_frame_, right_frame_;
@@ -215,13 +239,13 @@ private:
   const std::string logger_q_name_ = "logger";
   std::atomic<bool> record_, started_recording_, cam_running_;
   const std::vector<std::string> default_label_map_ = {
-      "background", "aeroplane",   "bicycle", "bird",  "boat",
-      "bottle",     "bus",         "car",     "cat",   "chair",
-      "cow",        "diningtable", "dog",     "horse", "motorbike",
-      "person",     "pottedplant", "sheep",   "sofa",  "train",
-      "tvmonitor"};
+    "background", "aeroplane", "bicycle", "bird", "boat",
+    "bottle", "bus", "car", "cat", "chair",
+    "cow", "diningtable", "dog", "horse", "motorbike",
+    "person", "pottedplant", "sheep", "sofa", "train",
+    "tvmonitor"};
   std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids_;
 };
 } // namespace depthai_ros_driver
 
-#endif // DEPTHAI_ROS_DRIVER__BASE_CAMERA_HPP_
+#endif /* SRC_DEPTHAI_ROS_DRIVER_INCLUDE_DEPTHAI_ROS_DRIVER_BASE_CAMERA_HPP_ */

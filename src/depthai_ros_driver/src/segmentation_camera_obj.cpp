@@ -20,25 +20,31 @@
 
 #include "depthai_ros_driver/segmentation_camera_obj.hpp"
 
-#include <depthai/pipeline/datatype/ADatatype.hpp>
-#include <depthai/pipeline/node/XLinkOut.hpp>
 #include <memory>
-#include <sensor_msgs/image_encodings.hpp>
 #include <string>
 #include <vector>
 
+#include "depthai/pipeline/node/XLinkOut.hpp"
+#include "sensor_msgs/image_encodings.hpp"
+#include "depthai/pipeline/datatype/ADatatype.hpp"
+#include "depthai-shared/common/CameraBoardSocket.hpp"
+#include "depthai-shared/common/Point2f.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
 namespace depthai_ros_driver {
 SegmentationCamera::SegmentationCamera(const rclcpp::NodeOptions &options)
-    : BaseCamera("camera", options) {}
+    : BaseCamera("camera", options) {
+      on_configure();
+    }
 
 void SegmentationCamera::on_configure() {
-  declare_basic_params();
+  declare_rgb_depth_params();
   std::string default_nn_path =
       ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
       "/models/deeplab_v3_plus_mnv2_decoder_256_openvino_2021.4.blob";
   nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
+  default_label_map_ = get_default_label_map();
+  label_map_ = default_label_map_;
   std::for_each(
       label_map_.begin(), label_map_.end(), [this](const std::string &l) {
         auto it =
@@ -47,32 +53,35 @@ void SegmentationCamera::on_configure() {
           label_map_indexes_.emplace_back(it - default_label_map_.begin());
         }
       });
-  setup_pipeline();
+
   setup_publishers();
+  setup_pipeline();
 
   RCLCPP_INFO(this->get_logger(), "SegmentationCamera ready!");
 }
 
 void SegmentationCamera::setup_pipeline() {
-  pipeline_ = std::make_unique<dai::Pipeline>();
-  setup_rgb();
-  setup_stereo();
+  setup_basic_devices();
   setup_all_xout_streams();
+  setup_control_config_xin();
+  auto pipeline = get_pipeline();
 
-  nn_ = pipeline_->create<dai::node::NeuralNetwork>();
-  xout_nn_ = pipeline_->create<dai::node::XLinkOut>();
-  xout_nn_->setStreamName("nn_");
+  nn_ = pipeline->create<dai::node::NeuralNetwork>();
+  xout_nn_ = pipeline->create<dai::node::XLinkOut>();
+  xout_nn_->setStreamName("nn");
 
   nn_->setNumPoolFrames(4);
   nn_->setBlobPath(nn_path_);
   nn_->setNumInferenceThreads(2);
   nn_->input.setBlocking(false);
-  camrgb_->preview.link(nn_->input);
+  link_nn(nn_);
 
   nn_->out.link(xout_nn_->input);
   start_device();
+    cropped_info_ = get_calibration(get_frame_id(dai::CameraBoardSocket::RGB),
+                      dai::CameraBoardSocket::RGB, 256, 256);
   setup_all_queues();
-  segmentation_nn_q_ = device_->getOutputQueue("nn_", max_q_size_, false);
+  segmentation_nn_q_ = get_output_q("nn");
   segmentation_nn_q_->addCallback(std::bind(&SegmentationCamera::seg_cb, this,
                                             std::placeholders::_1,
                                             std::placeholders::_2));
@@ -83,13 +92,13 @@ void SegmentationCamera::setup_publishers() {
 void SegmentationCamera::seg_cb(const std::string &name,
                                 const std::shared_ptr<dai::ADatatype> &data) {
   auto in_det = std::dynamic_pointer_cast<dai::NNData>(data);
-  std::vector nn_frame = in_det->getFirstLayerInt32();
+  std::vector<std::int32_t> nn_frame = in_det->getFirstLayerInt32();
   filter_out_detections(nn_frame);
   cv::Mat nn_mat = cv::Mat(nn_frame);
   nn_mat = nn_mat.reshape(0, 256);
   cv::Mat seg_colored = decode_deeplab(nn_mat);
-  publish_img(seg_colored, sensor_msgs::image_encodings::BGR8, rgb_info_,
-              mask_pub_);
+  publish_img(seg_colored, sensor_msgs::image_encodings::BGR8, cropped_info_,
+              mask_pub_, this->get_clock()->now());
 }
 
 void SegmentationCamera::filter_out_detections(std::vector<int> &det) {
@@ -121,3 +130,5 @@ cv::Mat SegmentationCamera::decode_deeplab(cv::Mat mat) {
 }
 
 } // namespace depthai_ros_driver
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::SegmentationCamera);
