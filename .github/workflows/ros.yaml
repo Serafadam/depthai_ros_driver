@@ -6,31 +6,32 @@ on:
   workflow_dispatch:
     
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: set lower case owner name
-        run: |
-          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
-        env:
-          OWNER: '${{ github.repository_owner }}'
-      - name: github permission fix
-        run:  git config --global --add safe.directory /__w/depthai_ros_driver/depthai_ros_driver
-      - name: Checkout code
-        uses: actions/checkout@v3.0.1
-      -
-        name: Test
-        run: |
-          cd ./.devcontainer && docker build -t ${OWNER_LC}_depthai_ros_driver -f Dockerfile .
-          docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
-          bash -c "
-          git submodule update --init --recursive \
-          && apt-get update \
-          && rosdep update \
-          && rosdep install --from-paths src --ignore-src -y --rosdistro=galactic --skip-keys depthai \
-          && colcon build --cmake-args '-DCMAKE_BUILD_TYPE=Release' -Wall -Wextra -Wpedantic \
-          && colcon test \
-          "
+  # doesn't work for now (see https://github.com/actions/checkout/issues/766)
+  # test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: set lower case owner name
+  #       run: |
+  #         echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+  #       env:
+  #         OWNER: '${{ github.repository_owner }}'
+  #     - name: github permission fix
+  #       run:  git config --global --add safe.directory /__w/depthai_ros_driver/depthai_ros_driver
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3.0.1
+  #     -
+  #       name: Test
+  #       run: |
+  #         cd ./.devcontainer && docker build -t ${OWNER_LC}_depthai_ros_driver -f Dockerfile .
+  #         docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
+  #         bash -c "
+  #         git submodule update --init --recursive \
+  #         && apt-get update \
+  #         && rosdep update \
+  #         && rosdep install --from-paths src --ignore-src -y --rosdistro=galactic --skip-keys depthai \
+  #         && colcon build --cmake-args '-DCMAKE_BUILD_TYPE=Release' -Wall -Wextra -Wpedantic \
+  #         && colcon test \
+  #         "
   lint:
     name: ament_${{ matrix.linter }}
     runs-on: ubuntu-latest
