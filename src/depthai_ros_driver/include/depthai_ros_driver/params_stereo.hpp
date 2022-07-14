@@ -125,11 +125,11 @@ public:
 
 private:
   std::unordered_map<std::string, dai::MonoCameraProperties::SensorResolution> mono_resolution_map =
-    {
-      {"400", dai::MonoCameraProperties::SensorResolution::THE_400_P},
-      {"480", dai::MonoCameraProperties::SensorResolution::THE_480_P},
-      {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
-      {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
+  {
+    {"400", dai::MonoCameraProperties::SensorResolution::THE_400_P},
+    {"480", dai::MonoCameraProperties::SensorResolution::THE_480_P},
+    {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
+    {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
   };
 
   StereoInitConfig init_config_;

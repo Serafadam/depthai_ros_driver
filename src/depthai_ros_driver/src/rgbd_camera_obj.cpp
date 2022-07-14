@@ -27,7 +27,8 @@
 
 namespace depthai_ros_driver
 {
-RGBDCamera::RGBDCamera(const rclcpp::NodeOptions & options) : BaseCamera("camera", options)
+RGBDCamera::RGBDCamera(const rclcpp::NodeOptions & options)
+: BaseCamera("camera", options)
 {
   on_configure();
 }

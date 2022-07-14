@@ -52,16 +52,16 @@
         // Linting and static code analysis tasks
         {
             "label": "fix",
-            "detail": "Reformat files with clang_format.",
+            "detail": "Reformat files with uncrustify.",
             "type": "shell",
-            "command": "ament_clang_format --reformat src/",
+            "command": "ament_uncrustify --reformat src/",
             "problemMatcher": []
         },
         {
-            "label": "clang_format",
-            "detail": "Lint files with clang_format.",
+            "label": "uncrustify",
+            "detail": "Lint files with uncrustify.",
             "type": "shell",
-            "command": "ament_clang_format src/",
+            "command": "ament_uncrustify src/",
             "presentation": {
                 "panel": "dedicated",
                 "reveal": "silent",
@@ -69,8 +69,8 @@
             },
             "problemMatcher": [
                 {
-                    "owner": "clang_format",
-                    "source": " clang_format",
+                    "owner": "uncrustify",
+                    "source": " uncrustify",
                     "fileLocation": "relative",
                     "pattern": [
                     /// just the file name message
@@ -244,7 +244,7 @@
         {
             "label": "lint all",
             "detail": "Run all linters.",
-            "dependsOn":["cppcheck", "cpplint", "flake8", "lint_cmake", "pep257","xmllint", "clang_format"],
+            "dependsOn":["cppcheck", "cpplint", "flake8", "lint_cmake", "pep257","xmllint", "uncrustify"],
             "problemMatcher": []
         },
         // Workspace editing tasks

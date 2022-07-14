@@ -41,7 +41,7 @@ void MobilenetCamera::on_configure()
 {
   declare_rgb_depth_params();
   std::string default_nn_path = ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
-                                "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
+    "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
   nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
   setup_publishers();
   setup_pipeline();

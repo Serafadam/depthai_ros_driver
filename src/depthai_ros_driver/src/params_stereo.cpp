@@ -120,9 +120,9 @@ void StereoParamsHandler::set_runtime_config(const StereoRuntimeConfig & config)
 {
   runtime_config_ = config;
 }
-StereoParamNames StereoParamsHandler::get_param_names() { return param_names_; }
-StereoInitConfig StereoParamsHandler::get_init_config() { return init_config_; }
-StereoRuntimeConfig StereoParamsHandler::get_runtime_config() { return runtime_config_; }
+StereoParamNames StereoParamsHandler::get_param_names() {return param_names_;}
+StereoInitConfig StereoParamsHandler::get_init_config() {return init_config_;}
+StereoRuntimeConfig StereoParamsHandler::get_runtime_config() {return runtime_config_;}
 
 }  // namespace stereo_params
 }  // namespace depthai_ros_driver

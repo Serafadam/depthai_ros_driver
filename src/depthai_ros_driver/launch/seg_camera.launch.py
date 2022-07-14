@@ -42,9 +42,7 @@ def generate_launch_description():
                         name="camera",
                         parameters=[{"i_rgb_fps": 60.0}],
                     ),
-                
                 ],
                 output='screen',)
-            
         ]
     )

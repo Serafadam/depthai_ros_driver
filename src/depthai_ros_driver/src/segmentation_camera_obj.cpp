@@ -43,16 +43,17 @@ void SegmentationCamera::on_configure()
 {
   declare_rgb_depth_params();
   std::string default_nn_path = ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
-                                "/models/deeplab_v3_plus_mnv2_decoder_256_openvino_2021.4.blob";
+    "/models/deeplab_v3_plus_mnv2_decoder_256_openvino_2021.4.blob";
   nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
   default_label_map_ = get_default_label_map();
   label_map_ = default_label_map_;
-  std::for_each(label_map_.begin(), label_map_.end(), [this](const std::string & l) {
-    auto it = std::find(default_label_map_.begin(), default_label_map_.end(), l);
-    if (it != default_label_map_.end()) {
-      label_map_indexes_.emplace_back(it - default_label_map_.begin());
-    }
-  });
+  std::for_each(
+    label_map_.begin(), label_map_.end(), [this](const std::string & l) {
+      auto it = std::find(default_label_map_.begin(), default_label_map_.end(), l);
+      if (it != default_label_map_.end()) {
+        label_map_indexes_.emplace_back(it - default_label_map_.begin());
+      }
+    });
 
   setup_publishers();
   setup_pipeline();
@@ -106,12 +107,13 @@ void SegmentationCamera::seg_cb(
 
 void SegmentationCamera::filter_out_detections(std::vector<int> & det)
 {
-  std::for_each(det.begin(), det.end(), [this](int & x) {
-    auto it = std::find(label_map_indexes_.begin(), label_map_indexes_.end(), x);
-    if (it == label_map_indexes_.end()) {
-      x = 0;
-    }
-  });
+  std::for_each(
+    det.begin(), det.end(), [this](int & x) {
+      auto it = std::find(label_map_indexes_.begin(), label_map_indexes_.end(), x);
+      if (it == label_map_indexes_.end()) {
+        x = 0;
+      }
+    });
 }
 
 cv::Mat SegmentationCamera::decode_deeplab(cv::Mat mat)

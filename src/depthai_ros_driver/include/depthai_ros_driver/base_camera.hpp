@@ -211,9 +211,9 @@ private:
   const std::string logger_q_name_ = "logger";
   std::atomic<bool> record_, started_recording_, cam_running_;
   const std::vector<std::string> default_label_map_ = {
-    "background", "aeroplane", "bicycle",     "bird",  "boat",        "bottle", "bus",
-    "car",        "cat",       "chair",       "cow",   "diningtable", "dog",    "horse",
-    "motorbike",  "person",    "pottedplant", "sheep", "sofa",        "train",  "tvmonitor"};
+    "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
+    "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
+    "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
   std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids_;
 };
 }  // namespace depthai_ros_driver

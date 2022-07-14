@@ -75,9 +75,9 @@ struct RGBParamNames
   const std::string set_man_whitebalance = "r_set_man_whitebalance";
   const std::string whitebalance = "r_whitebalance";
   const std::vector<std::string> name_vector = {
-    rgb_fps,          preview_size,  rgb_width, rgb_height,           rgb_resolution,
-    set_isp,          set_man_focus, man_focus, interleaved,          keep_preview_aspect_ratio,
-    set_man_exposure, rgb_exposure,  rgb_iso,   set_man_whitebalance, whitebalance};
+    rgb_fps, preview_size, rgb_width, rgb_height, rgb_resolution,
+    set_isp, set_man_focus, man_focus, interleaved, keep_preview_aspect_ratio,
+    set_man_exposure, rgb_exposure, rgb_iso, set_man_whitebalance, whitebalance};
 };
 
 class RGBParamsHandler
@@ -99,10 +99,10 @@ public:
 
 private:
   std::unordered_map<std::string, dai::ColorCameraProperties::SensorResolution>
-    rgb_resolution_map_ = {
-      {"1080", dai::ColorCameraProperties::SensorResolution::THE_1080_P},
-      {"4k", dai::ColorCameraProperties::SensorResolution::THE_4_K},
-      {"12MP", dai::ColorCameraProperties::SensorResolution::THE_12_MP},
+  rgb_resolution_map_ = {
+    {"1080", dai::ColorCameraProperties::SensorResolution::THE_1080_P},
+    {"4k", dai::ColorCameraProperties::SensorResolution::THE_4_K},
+    {"12MP", dai::ColorCameraProperties::SensorResolution::THE_12_MP},
   };
   RGBInitConfig init_config_;
   RGBRuntimeConfig runtime_config_;

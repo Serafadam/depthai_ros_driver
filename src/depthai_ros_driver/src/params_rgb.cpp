@@ -100,7 +100,7 @@ void RGBParamsHandler::set_init_config(const std::vector<rclcpp::Parameter> & pa
     }
   }
 }
-void RGBParamsHandler::set_init_config(const RGBInitConfig & config) { init_config_ = config; }
+void RGBParamsHandler::set_init_config(const RGBInitConfig & config) {init_config_ = config;}
 void RGBParamsHandler::set_runtime_config(const RGBRuntimeConfig & config)
 {
   runtime_config_ = config;
@@ -171,8 +171,8 @@ void RGBParamsHandler::setup_rgb(
   RCLCPP_INFO(logger, "Keep preview aspect ratio: %d", init_config_.keep_preview_aspect_ratio);
   camrgb->setPreviewKeepAspectRatio(init_config_.keep_preview_aspect_ratio);
 }
-RGBParamNames RGBParamsHandler::get_param_names() { return param_names_; }
-RGBInitConfig RGBParamsHandler::get_init_config() { return init_config_; }
-RGBRuntimeConfig RGBParamsHandler::get_runtime_config() { return runtime_config_; }
+RGBParamNames RGBParamsHandler::get_param_names() {return param_names_;}
+RGBInitConfig RGBParamsHandler::get_init_config() {return init_config_;}
+RGBRuntimeConfig RGBParamsHandler::get_runtime_config() {return runtime_config_;}
 }  // namespace rgb_params
 }  // namespace depthai_ros_driver

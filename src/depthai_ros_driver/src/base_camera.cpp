@@ -116,7 +116,7 @@ void BaseCamera::shutdown_cb(
   cam_running_ = false;
 }
 
-void BaseCamera::shutdown_device() { device_.reset(); }
+void BaseCamera::shutdown_device() {device_.reset();}
 
 void BaseCamera::restart_device()
 {
@@ -125,7 +125,7 @@ void BaseCamera::restart_device()
   setup_all_queues();
 }
 
-void BaseCamera::create_pipeline() { pipeline_ = std::make_unique<dai::Pipeline>(); }
+void BaseCamera::create_pipeline() {pipeline_ = std::make_unique<dai::Pipeline>();}
 
 void BaseCamera::start_device()
 {
@@ -405,24 +405,24 @@ void BaseCamera::logger_cb(const std::string & name, const std::shared_ptr<dai::
 {
   auto info = std::dynamic_pointer_cast<dai::SystemInformation>(data);
   std::stringstream msg;
-  msg << "Ddr used / total - " << info->ddrMemoryUsage.used / (1024.0f * 1024.0f) << "/"
-      << info->ddrMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
-      << "\n";
-  msg << "Cmx used / total - " << info->cmxMemoryUsage.used / (1024.0f * 1024.0f) << "/"
-      << info->cmxMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
-      << "\n";
-  msg << "LeonCss heap used / total - " << info->leonCssMemoryUsage.used / (1024.0f * 1024.0f)
-      << "/" << info->leonCssMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
-      << "\n";
-  msg << "LeonMss heap used / total - " << info->leonMssMemoryUsage.used / (1024.0f * 1024.0f)
-      << "/" << info->leonMssMemoryUsage.total / (1024.0f * 1024.0f) << "MiB"
-      << "\n";
+  msg << "Ddr used / total - " << info->ddrMemoryUsage.used / (1024.0f * 1024.0f) << "/" <<
+    info->ddrMemoryUsage.total / (1024.0f * 1024.0f) << "MiB" <<
+    "\n";
+  msg << "Cmx used / total - " << info->cmxMemoryUsage.used / (1024.0f * 1024.0f) << "/" <<
+    info->cmxMemoryUsage.total / (1024.0f * 1024.0f) << "MiB" <<
+    "\n";
+  msg << "LeonCss heap used / total - " << info->leonCssMemoryUsage.used / (1024.0f * 1024.0f) <<
+    "/" << info->leonCssMemoryUsage.total / (1024.0f * 1024.0f) << "MiB" <<
+    "\n";
+  msg << "LeonMss heap used / total - " << info->leonMssMemoryUsage.used / (1024.0f * 1024.0f) <<
+    "/" << info->leonMssMemoryUsage.total / (1024.0f * 1024.0f) << "MiB" <<
+    "\n";
   const auto & t = info->chipTemperature;
-  msg << "Chip temperature - average: " << t.average << " css: " << t.css << " mss: " << t.mss
-      << " upa: " << t.upa << " dss: " << t.dss << "\n";
-  msg << "Cpu usage - Leon CSS: " << info->leonCssCpuUsage.average * 100
-      << "%% Leon MSS: " << info->leonMssCpuUsage.average * 100 << "%%"
-      << "\n";
+  msg << "Chip temperature - average: " << t.average << " css: " << t.css << " mss: " << t.mss <<
+    " upa: " << t.upa << " dss: " << t.dss << "\n";
+  msg << "Cpu usage - Leon CSS: " << info->leonCssCpuUsage.average * 100 <<
+    "%% Leon MSS: " << info->leonMssCpuUsage.average * 100 << "%%" <<
+    "\n";
   DiagnosticArray diag;
   diag.header.stamp = this->get_clock()->now();
   diag.status.resize(1);
@@ -513,7 +513,7 @@ void BaseCamera::setup_recording_q()
   enc_q_->addCallback(
     std::bind(&BaseCamera::enc_cb, this, std::placeholders::_1, std::placeholders::_2));
 }
-void BaseCamera::setup_control_q() { control_q_ = device_->getInputQueue(control_q_name_); }
+void BaseCamera::setup_control_q() {control_q_ = device_->getInputQueue(control_q_name_);}
 rcl_interfaces::msg::SetParametersResult BaseCamera::parameter_cb(
   const std::vector<rclcpp::Parameter> & params)
 {
@@ -524,7 +524,7 @@ rcl_interfaces::msg::SetParametersResult BaseCamera::parameter_cb(
   res.successful = true;
   return res;
 }
-void BaseCamera::setup_config_q() { config_q_ = device_->getInputQueue(config_q_name_); }
+void BaseCamera::setup_config_q() {config_q_ = device_->getInputQueue(config_q_name_);}
 void BaseCamera::setup_logger_q()
 {
   diag_pub_ = this->create_publisher<DiagnosticArray>("~/diagnostics", 10);
@@ -558,7 +558,7 @@ void BaseCamera::setup_all_queues()
   param_cb_handle_ = this->add_on_set_parameters_callback(
     std::bind(&BaseCamera::parameter_cb, this, std::placeholders::_1));
 }
-std::shared_ptr<dai::Pipeline> BaseCamera::get_pipeline() { return pipeline_; }
+std::shared_ptr<dai::Pipeline> BaseCamera::get_pipeline() {return pipeline_;}
 std::shared_ptr<dai::DataOutputQueue> BaseCamera::get_output_q(
   const std::string & q_name, uint8_t max_q_size, bool blocking)
 {
@@ -568,7 +568,7 @@ std::string BaseCamera::get_frame_id(const dai::CameraBoardSocket & socket)
 {
   return frame_ids_.at(socket);
 }
-std::vector<std::string> BaseCamera::get_default_label_map() { return default_label_map_; }
+std::vector<std::string> BaseCamera::get_default_label_map() {return default_label_map_;}
 
 void BaseCamera::link_nn(std::shared_ptr<dai::node::NeuralNetwork> nn)
 {
