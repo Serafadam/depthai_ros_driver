@@ -55,6 +55,6 @@ jobs:
           bash -c "
           && apt-get update \
           && rosdep update \
-          && apt install ros-galactic-${{ matrix.linter }}\
+          && apt install ros-galactic-${{ matrix.linter }} \
           && ament_${{ matrix.linter }} src/
           "
