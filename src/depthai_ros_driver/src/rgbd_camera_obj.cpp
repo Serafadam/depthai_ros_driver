@@ -23,24 +23,17 @@
 #include <memory>
 #include <string>
 
-#include "depthai/pipeline/datatype/ADatatype.hpp"
-#include "depthai/pipeline/datatype/ImgFrame.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/core/cvstd_wrapper.hpp"
-#include "opencv2/core/hal/interface.h"
-#include "opencv2/core/utility.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/ximgproc/disparity_filter.hpp"
 #include "rclcpp/logging.hpp"
-#include "sensor_msgs/image_encodings.hpp"
 
-namespace depthai_ros_driver {
-RGBDCamera::RGBDCamera(const rclcpp::NodeOptions &options)
-    : BaseCamera("camera", options) {
+namespace depthai_ros_driver
+{
+RGBDCamera::RGBDCamera(const rclcpp::NodeOptions & options) : BaseCamera("camera", options)
+{
   on_configure();
 }
 
-void RGBDCamera::on_configure() {
+void RGBDCamera::on_configure()
+{
   declare_rgb_depth_params();
   setup_basic_devices();
   setup_all_xout_streams();
@@ -50,6 +43,6 @@ void RGBDCamera::on_configure() {
   RCLCPP_INFO(this->get_logger(), "RGBD Camera ready.");
 }
 
-} // namespace depthai_ros_driver
+}  // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::RGBDCamera);

@@ -67,4 +67,4 @@ extern "C" {
 }
 #endif
 
-#endif // DEPTHAI_ROS_DRIVER__VISIBILITY_H_
+#endif  // DEPTHAI_ROS_DRIVER__VISIBILITY_H_

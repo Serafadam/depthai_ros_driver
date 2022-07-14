@@ -17,20 +17,26 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef DEPTHAI_ROS_DRIVER__PARAMS_STEREO_HPP
-#define DEPTHAI_ROS_DRIVER__PARAMS_STEREO_HPP
+#ifndef DEPTHAI_ROS_DRIVER__PARAMS_STEREO_HPP_
+#define DEPTHAI_ROS_DRIVER__PARAMS_STEREO_HPP_
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "depthai/pipeline/datatype/CameraControl.hpp"
 #include "depthai/pipeline/node/MonoCamera.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
 #include "rclcpp/parameter.hpp"
 #include "rclcpp/rclcpp.hpp"
-namespace depthai_ros_driver {
-namespace stereo_params {
-struct StereoInitConfig {
+namespace depthai_ros_driver
+{
+namespace stereo_params
+{
+struct StereoInitConfig
+{
   double mono_fps = 60.0;
   std::string mono_resolution = "400";
   bool align_depth = true;
@@ -52,12 +58,14 @@ struct StereoInitConfig {
   uint8_t decimation_factor = 1;
 };
 
-struct StereoRuntimeConfig {
+struct StereoRuntimeConfig
+{
   int mono_exposure = 1000;
   int mono_iso = 100;
   bool set_man_exposure = false;
 };
-struct StereoParamNames {
+struct StereoParamNames
+{
   const std::string mono_fps = "i_mono_fps";
   const std::string mono_resolution = "i_mono_resolution";
   const std::string align_depth = "i_align_depth";
@@ -77,56 +85,58 @@ struct StereoParamNames {
   const std::string threshold_filter_min_range = "i_threshold_filter_min_range";
   const std::string threshold_filter_max_range = "i_threshold_filter_max_range";
   const std::string decimation_factor = "i_decimation_factor";
-  const std::vector<std::string> name_vector = {mono_fps,
-                                                mono_resolution,
-                                                lr_check,
-                                                lrc_threshold,
-                                                depth_filter_size,
-                                                stereo_conf_threshold,
-                                                subpixel,
-                                                extended_disp,
-                                                rectify_edge_fill_color,
-                                                enable_speckle_filter,
-                                                speckle_range,
-                                                enable_temporal_filter,
-                                                enable_spatial_filter,
-                                                hole_filling_radius,
-                                                spatial_filter_iterations,
-                                                threshold_filter_min_range,
-                                                threshold_filter_max_range,
-                                                decimation_factor};
+  const std::vector<std::string> name_vector = {
+    mono_fps,
+    mono_resolution,
+    lr_check,
+    lrc_threshold,
+    depth_filter_size,
+    stereo_conf_threshold,
+    subpixel,
+    extended_disp,
+    rectify_edge_fill_color,
+    enable_speckle_filter,
+    speckle_range,
+    enable_temporal_filter,
+    enable_spatial_filter,
+    hole_filling_radius,
+    spatial_filter_iterations,
+    threshold_filter_min_range,
+    threshold_filter_max_range,
+    decimation_factor};
 };
 
-class StereoParamsHandler {
+class StereoParamsHandler
+{
 public:
   StereoParamsHandler();
-  void declare_depth_params(rclcpp::Node *node);
-  void set_runtime_config(const std::vector<rclcpp::Parameter> &params);
+  void declare_depth_params(rclcpp::Node * node);
+  void set_runtime_config(const std::vector<rclcpp::Parameter> & params);
   dai::CameraControl get_depth_control();
-  virtual void setup_stereo(std::shared_ptr<dai::node::StereoDepth> &stereo,
-                            std::shared_ptr<dai::node::MonoCamera> &mono_left,
-                            std::shared_ptr<dai::node::MonoCamera> &mono_right,
-                            const rclcpp::Logger &logger);
-    void set_init_config(const StereoInitConfig &config);
-    void set_runtime_config(const StereoRuntimeConfig &config);
-    StereoParamNames get_param_names();
+  virtual void setup_stereo(
+    std::shared_ptr<dai::node::StereoDepth> & stereo,
+    std::shared_ptr<dai::node::MonoCamera> & mono_left,
+    std::shared_ptr<dai::node::MonoCamera> & mono_right, const rclcpp::Logger & logger);
+  void set_init_config(const StereoInitConfig & config);
+  void set_runtime_config(const StereoRuntimeConfig & config);
+  StereoParamNames get_param_names();
   StereoInitConfig get_init_config();
   StereoRuntimeConfig get_runtime_config();
 
 private:
-  std::unordered_map<std::string, dai::MonoCameraProperties::SensorResolution>
-      mono_resolution_map = {
-          {"400", dai::MonoCameraProperties::SensorResolution::THE_400_P},
-          {"480", dai::MonoCameraProperties::SensorResolution::THE_480_P},
-          {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
-          {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
+  std::unordered_map<std::string, dai::MonoCameraProperties::SensorResolution> mono_resolution_map =
+    {
+      {"400", dai::MonoCameraProperties::SensorResolution::THE_400_P},
+      {"480", dai::MonoCameraProperties::SensorResolution::THE_480_P},
+      {"720", dai::MonoCameraProperties::SensorResolution::THE_720_P},
+      {"800", dai::MonoCameraProperties::SensorResolution::THE_800_P},
   };
 
   StereoInitConfig init_config_;
   StereoRuntimeConfig runtime_config_;
   StereoParamNames param_names_;
 };
-} // namespace stereo_params
-} // namespace depthai_ros_driver
+}  // namespace stereo_params
+}  // namespace depthai_ros_driver
 
-#endif // DEPTHAI_ROS_DRIVER__PARAMS_STEREO_HPP
+#endif  // DEPTHAI_ROS_DRIVER__PARAMS_STEREO_HPP_

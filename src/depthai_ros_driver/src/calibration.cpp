@@ -19,23 +19,31 @@
 // SOFTWARE.
 
 #include "depthai_ros_driver/calibration.hpp"
+
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "sensor_msgs/msg/camera_info.hpp"
 
-namespace depthai_ros_driver {
-  namespace calibration{
-sensor_msgs::msg::CameraInfo
-get_calibration(std::unique_ptr<dai::Device> &device,
-                const std::string &frame_id, dai::CameraBoardSocket socket,
-                int width, int height, dai::Point2f top_left_pixel_id,
-                dai::Point2f bottom_right_pixel_id) {
+namespace depthai_ros_driver
+{
+namespace calibration
+{
+sensor_msgs::msg::CameraInfo get_calibration(
+  std::unique_ptr<dai::Device> & device, const std::string & frame_id,
+  dai::CameraBoardSocket socket, int width, int height, dai::Point2f top_left_pixel_id,
+  dai::Point2f bottom_right_pixel_id)
+{
   dai::CalibrationHandler cal_data = device->readCalibration();
   std::vector<std::vector<float>> intrinsics;
   sensor_msgs::msg::CameraInfo info;
   if (width == 0 || height == 0) {
     std::tie(intrinsics, width, height) = cal_data.getDefaultIntrinsics(socket);
   } else {
-    intrinsics = cal_data.getCameraIntrinsics(
-        socket, width, height, top_left_pixel_id, bottom_right_pixel_id);
+    intrinsics =
+      cal_data.getCameraIntrinsics(socket, width, height, top_left_pixel_id, bottom_right_pixel_id);
   }
   info.height = height;
   info.width = width;
@@ -58,8 +66,8 @@ get_calibration(std::unique_ptr<dai::Device> &device,
     rotation = cal_data.getStereoLeftRectificationRotation();
   } else if (socket == dai::CameraBoardSocket::RIGHT) {
     rotation = cal_data.getStereoRightRectificationRotation();
-    std::vector<std::vector<float>> extrinsics = cal_data.getCameraExtrinsics(
-        dai::CameraBoardSocket::RIGHT, dai::CameraBoardSocket::LEFT);
+    std::vector<std::vector<float>> extrinsics =
+      cal_data.getCameraExtrinsics(dai::CameraBoardSocket::RIGHT, dai::CameraBoardSocket::LEFT);
     tx = extrinsics[0][3] / 100.0;
   }
 
@@ -80,5 +88,5 @@ get_calibration(std::unique_ptr<dai::Device> &device,
   info.header.frame_id = frame_id;
   return info;
 }
-  } // namespace calibration
-} // namespace depthai_ros_driver
+}  // namespace calibration
+}  // namespace depthai_ros_driver

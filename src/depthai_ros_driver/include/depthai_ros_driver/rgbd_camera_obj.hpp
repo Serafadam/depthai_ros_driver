@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef DEPTHAI_ROS_DRIVER__RGB_CAMERA_OBJ_HPP_
-#define DEPTHAI_ROS_DRIVER__RGB_CAMERA_OBJ_HPP_
+#ifndef DEPTHAI_ROS_DRIVER__RGBD_CAMERA_OBJ_HPP_
+#define DEPTHAI_ROS_DRIVER__RGBD_CAMERA_OBJ_HPP_
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -39,17 +39,19 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
-namespace depthai_ros_driver {
-class RGBDCamera : public BaseCamera {
+namespace depthai_ros_driver
+{
+class RGBDCamera : public BaseCamera
+{
 public:
   DEPTHAI_ROS_DRIVER_PUBLIC
-  RGBDCamera(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  explicit RGBDCamera(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~RGBDCamera() {}
   void on_configure() override;
 
 private:
 };
 
-} // namespace depthai_ros_driver
+}  // namespace depthai_ros_driver
 
-#endif // DEPTHAI_ROS_DRIVER__RGB_CAMERA_OBJ_HPP_
+#endif  // DEPTHAI_ROS_DRIVER__RGBD_CAMERA_OBJ_HPP_

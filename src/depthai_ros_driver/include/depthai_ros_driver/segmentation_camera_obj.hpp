@@ -28,12 +28,9 @@
 #include <string>
 #include <vector>
 
-#include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/depthai.hpp"
-#include "depthai/pipeline/node/ColorCamera.hpp"
-#include "depthai/pipeline/node/MonoCamera.hpp"
+#include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/pipeline/node/NeuralNetwork.hpp"
-#include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
 #include "depthai_ros_driver/visibility.h"
@@ -43,12 +40,13 @@
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
-namespace depthai_ros_driver {
-class SegmentationCamera : public BaseCamera {
+namespace depthai_ros_driver
+{
+class SegmentationCamera : public BaseCamera
+{
 public:
   DEPTHAI_ROS_DRIVER_PUBLIC
-  SegmentationCamera(
-      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  explicit SegmentationCamera(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~SegmentationCamera() {}
   void on_configure() override;
 
@@ -57,9 +55,8 @@ private:
   sensor_msgs::msg::CameraInfo cropped_info_;
   void setup_publishers();
   void setup_pipeline();
-  void seg_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
-  void filter_out_detections(std::vector<int> &det);
+  void seg_cb(const std::string & name, const std::shared_ptr<dai::ADatatype> & data);
+  void filter_out_detections(std::vector<int> & det);
   cv::Mat decode_deeplab(cv::Mat mat);
 
   std::shared_ptr<dai::node::NeuralNetwork> nn_;
@@ -73,6 +70,6 @@ private:
   std::vector<std::string> default_label_map_;
   std::vector<int> label_map_indexes_;
 };
-} // namespace depthai_ros_driver
+}  // namespace depthai_ros_driver
 
-#endif //  DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_
+#endif  //  DEPTHAI_ROS_DRIVER__SEGMENTATION_CAMERA_OBJ_HPP_

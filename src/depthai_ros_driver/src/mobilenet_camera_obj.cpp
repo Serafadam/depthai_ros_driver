@@ -20,26 +20,28 @@
 
 #include "depthai_ros_driver/mobilenet_camera_obj.hpp"
 
+#include <depthai-shared/common/CameraBoardSocket.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <depthai-shared/common/CameraBoardSocket.hpp>
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai_ros_driver/params_rgb.hpp"
 
-namespace depthai_ros_driver {
-MobilenetCamera::MobilenetCamera(const rclcpp::NodeOptions &options)
-    : BaseCamera("camera", options) {
+namespace depthai_ros_driver
+{
+MobilenetCamera::MobilenetCamera(const rclcpp::NodeOptions & options)
+: BaseCamera("camera", options)
+{
   on_configure();
 }
 
-void MobilenetCamera::on_configure() {
+void MobilenetCamera::on_configure()
+{
   declare_rgb_depth_params();
-  std::string default_nn_path =
-      ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
-      "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
+  std::string default_nn_path = ament_index_cpp::get_package_share_directory("depthai_ros_driver") +
+                                "/models/mobilenet-ssd_openvino_2021.2_6shave.blob";
   nn_path_ = this->declare_parameter<std::string>("nn_path", default_nn_path);
   setup_publishers();
   setup_pipeline();
@@ -47,7 +49,8 @@ void MobilenetCamera::on_configure() {
   RCLCPP_INFO(this->get_logger(), "MobilenetCamera ready!");
 }
 
-void MobilenetCamera::setup_pipeline() {
+void MobilenetCamera::setup_pipeline()
+{
   label_map_ = get_default_label_map();
   rgb_params::RGBInitConfig config;
   config.preview_size = 300;
@@ -74,17 +77,16 @@ void MobilenetCamera::setup_pipeline() {
   start_device();
   setup_all_queues();
   detection_nn_q_ = get_output_q("nn", 4, false);
-  detection_nn_q_->addCallback(std::bind(&MobilenetCamera::det_cb, this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2));
+  detection_nn_q_->addCallback(
+    std::bind(&MobilenetCamera::det_cb, this, std::placeholders::_1, std::placeholders::_2));
 }
-void MobilenetCamera::setup_publishers() {
-  det_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>(
-      "~/detections", 10);
+void MobilenetCamera::setup_publishers()
+{
+  det_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("~/detections", 10);
 }
 
-void MobilenetCamera::det_cb(const std::string &name,
-                             const std::shared_ptr<dai::ADatatype> &data) {
+void MobilenetCamera::det_cb(const std::string & name, const std::shared_ptr<dai::ADatatype> & data)
+{
   auto in_det = std::dynamic_pointer_cast<dai::SpatialImgDetections>(data);
   auto detections = in_det->detections;
   vision_msgs::msg::Detection3DArray ros_det;
@@ -100,21 +102,19 @@ void MobilenetCamera::det_cb(const std::string &name,
     }
     ros_det.detections[i].results.resize(1);
     ros_det.detections[i].results[0].hypothesis.class_id = label_name;
-    ros_det.detections[i].results[0].hypothesis.score =
-        detections[i].confidence;
-    ros_det.detections[i].results[0].hypothesis.score =
-        detections[i].confidence;
+    ros_det.detections[i].results[0].hypothesis.score = detections[i].confidence;
+    ros_det.detections[i].results[0].hypothesis.score = detections[i].confidence;
     ros_det.detections[i].results[0].pose.pose.position.x =
-        detections[i].spatialCoordinates.x / 1000.0;
+      detections[i].spatialCoordinates.x / 1000.0;
     ros_det.detections[i].results[0].pose.pose.position.y =
-        -detections[i].spatialCoordinates.x / 1000.0;
+      -detections[i].spatialCoordinates.x / 1000.0;
     ros_det.detections[i].results[0].pose.pose.position.z =
-        -detections[i].spatialCoordinates.z / 1000.0;
+      -detections[i].spatialCoordinates.z / 1000.0;
   }
 
   det_pub_->publish(ros_det);
 }
 
-} // namespace depthai_ros_driver
+}  // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::MobilenetCamera);

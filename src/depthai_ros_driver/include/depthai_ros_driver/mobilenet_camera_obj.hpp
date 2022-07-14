@@ -29,10 +29,8 @@
 #include <vector>
 
 #include "depthai/depthai.hpp"
-#include "depthai/pipeline/node/ColorCamera.hpp"
-#include "depthai/pipeline/node/MonoCamera.hpp"
+#include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/pipeline/node/SpatialDetectionNetwork.hpp"
-#include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
 #include "image_transport/image_transport.hpp"
@@ -40,20 +38,19 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "vision_msgs/msg/detection3_d_array.hpp"
-#include <depthai/pipeline/datatype/ADatatype.hpp>
-namespace depthai_ros_driver {
-class MobilenetCamera : public BaseCamera {
+namespace depthai_ros_driver
+{
+class MobilenetCamera : public BaseCamera
+{
 public:
-  explicit MobilenetCamera(
-      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  explicit MobilenetCamera(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~MobilenetCamera() {}
   void on_configure() override;
 
 private:
   void setup_pipeline();
   void setup_publishers();
-  void det_cb(const std::string &name,
-              const std::shared_ptr<dai::ADatatype> &data);
+  void det_cb(const std::string & name, const std::shared_ptr<dai::ADatatype> & data);
 
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
@@ -63,6 +60,6 @@ private:
   std::vector<std::string> label_map_;
   bool sync_nn_ = true;
 };
-} // namespace depthai_ros_driver
+}  // namespace depthai_ros_driver
 
-#endif //  DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_
+#endif  //  DEPTHAI_ROS_DRIVER__MOBILENET_CAMERA_OBJ_HPP_
