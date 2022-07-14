@@ -5,7 +5,7 @@ FROM amd64/ros:humble-ros-base
 ARG WORKSPACE
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-   && apt-get -y install --no-install-recommends ros-galactic-ament-clang-format software-properties-common libusb-1.0-0-dev wget zsh
+   && apt-get -y install --no-install-recommends software-properties-common libusb-1.0-0-dev wget zsh
    #
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test && \
     apt install -y gcc-10 gcc-10-base gcc-10-doc g++-10 && \

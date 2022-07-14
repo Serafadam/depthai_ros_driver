@@ -17,7 +17,7 @@ jobs:
       - name: github permission fix
         run:  git config --global --add safe.directory /__w/depthai_ros_driver/depthai_ros_driver
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.0.1
       -
         name: Test
         run: |
@@ -46,12 +46,15 @@ jobs:
           OWNER: '${{ github.repository_owner }}'
       - 
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.0.1
       -
         name: Run linter
         run: |
           cd ./.devcontainer && docker build -t ${OWNER_LC}_depthai_ros_driver -f Dockerfile .
           docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
           bash -c "
+          && apt-get update \
+          && rosdep update \
+          && apt install ros-galactic-${{ matrix.linter }}\
           ament_${{ matrix.linter }} src/
           "
