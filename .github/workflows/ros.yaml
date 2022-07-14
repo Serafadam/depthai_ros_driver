@@ -53,8 +53,5 @@ jobs:
           cd ./.devcontainer && docker build -t ${OWNER_LC}_depthai_ros_driver -f Dockerfile .
           docker run -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -w $GITHUB_WORKSPACE ${OWNER_LC}_depthai_ros_driver \
           bash -c "
-          apt-get update \
-          && rosdep update \
-          && apt install ros-galactic-${{ matrix.linter }} \
-          && ament_${{ matrix.linter }} src/
+          ament_${{ matrix.linter }} src/
           "
