@@ -10,8 +10,6 @@ RUN apt-get update \
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test && \
     apt install -y gcc-10 gcc-10-base gcc-10-doc g++-10 && \
     apt install -y libstdc++-10-dev libstdc++-10-doc && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 7 && \
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 7 && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
 ENV DEBIAN_FRONTEND=dialog
