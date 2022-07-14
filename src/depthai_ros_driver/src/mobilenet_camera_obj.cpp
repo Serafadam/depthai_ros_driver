@@ -20,11 +20,11 @@
 
 #include "depthai_ros_driver/mobilenet_camera_obj.hpp"
 
-#include <depthai-shared/common/CameraBoardSocket.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "depthai-shared/common/CameraBoardSocket.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai_ros_driver/params_rgb.hpp"

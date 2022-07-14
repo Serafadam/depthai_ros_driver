@@ -39,7 +39,7 @@ class ObjectPublisher(Node):
         self._br = TransformBroadcaster(self)
         self._unique_id = 0
 
-        self.get_logger().info(f'ObjectPublisher node Up!')
+        self.get_logger().info('ObjectPublisher node Up!')
 
     def publish_data(self, msg: Detection3DArray):
         marker_array = MarkerArray()
@@ -50,7 +50,7 @@ class ObjectPublisher(Node):
             marker = Marker()
             marker.id = i + self._unique_id
             marker.text = f'{det.results[0].hypothesis.class_id}_{marker.id}'
-            marker.header.frame_id = 'camera_link'
+            marker.header.frame_id = msg.header.frame_id
             marker.ns = 'det'
             marker.header.stamp = self.get_clock().now().to_msg()
             marker.scale.x = 0.1
@@ -69,7 +69,7 @@ class ObjectPublisher(Node):
             marker_array.markers.append(marker)
             tf = TransformStamped()
             tf.child_frame_id = marker.text
-            tf.header.frame_id = 'camera_link'
+            tf.header.frame_id = msg.header.frame_id
             tf.transform.translation.x = det.results[0].pose.pose.position.x
             tf.transform.translation.y = det.results[0].pose.pose.position.y
             tf.transform.translation.z = det.results[0].pose.pose.position.z
