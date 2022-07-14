@@ -56,5 +56,5 @@ jobs:
           && apt-get update \
           && rosdep update \
           && apt install ros-galactic-${{ matrix.linter }}\
-          ament_${{ matrix.linter }} src/
+          && ament_${{ matrix.linter }} src/
           "
