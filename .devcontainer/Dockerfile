@@ -12,7 +12,6 @@ RUN add-apt-repository ppa:ubuntu-toolchain-r/test && \
     apt install -y libstdc++-10-dev libstdc++-10-doc && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
-RUN apt update && rosdep update && apt install ros-galactic-ament-clang-format
 ENV DEBIAN_FRONTEND=dialog
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 # Set up auto-source of workspace for ros user
