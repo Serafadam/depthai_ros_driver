@@ -3,3 +3,5 @@ install/*
 log/*
 site/*
 *.pyc
+.cache/*
+src/depthai_ros_driver/models/orb_vocab.fbow

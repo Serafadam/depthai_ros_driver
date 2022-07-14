@@ -29,13 +29,10 @@
 #include <vector>
 
 #include "depthai/depthai.hpp"
-#include "depthai/pipeline/node/ColorCamera.hpp"
-#include "depthai/pipeline/node/MonoCamera.hpp"
+#include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/pipeline/node/SpatialDetectionNetwork.hpp"
-#include "depthai/pipeline/node/StereoDepth.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai_ros_driver/base_camera.hpp"
-#include "depthai_ros_driver/utils.hpp"
 #include "image_transport/image_transport.hpp"
 #include "opencv2/opencv.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -51,45 +48,17 @@ public:
   void on_configure() override;
 
 private:
-  image_transport::Publisher preview_pub_;
-  image_transport::Publisher depth_pub_;
-  image_transport::Publisher mono_left_pub_;
-  image_transport::Publisher mono_right_pub_;
-  image_transport::Publisher image_pub_;
+  void setup_pipeline();
+  void setup_publishers();
+  void det_cb(const std::string & name, const std::shared_ptr<dai::ADatatype> & data);
+
   rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr det_pub_;
-  void timer_cb() override;
-  void declare_parameters() override;
-  void setup_publishers() override;
-  void setup_pipeline() override;
-
-  std::shared_ptr<dai::node::ColorCamera> camrgb_;
-  std::shared_ptr<dai::node::MonoCamera> monoleft_;
-  std::shared_ptr<dai::node::MonoCamera> monoright_;
-  std::shared_ptr<dai::node::StereoDepth> stereo_;
   std::shared_ptr<dai::node::MobileNetSpatialDetectionNetwork> nn_;
-  std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_nn_, xout_bbdm_, xout_depth_, xout_video_,
-    xout_mono_left_, xout_mono_right_;
-
-  std::shared_ptr<dai::DataOutputQueue> preview_q_, detection_nn_q_, bbdm_q_, depth_q_, video_q_,
-    mono_left_q_, mono_right_q_;
-
-  const std::vector<std::string> default_label_map_ = {
-    "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
-    "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
-    "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
-  std::vector<std::string> label_map_;
-  cv::Mat frame_;
-  rclcpp::TimerBase::SharedPtr image_timer_;
-  std::vector<dai::SpatialImgDetection> detections;
-  int depth_filter_size_;
+  std::shared_ptr<dai::node::XLinkOut> xout_nn_, xout_bbdm_;
+  std::shared_ptr<dai::DataOutputQueue> detection_nn_q_, bbdm_q_;
   std::string nn_path_;
-  std::string resolution_;
-  int counter_;
-  int width_, height_;
-  double fps_;
-  std::string camera_frame_;
-  rclcpp::Time start_time_;
-  std::atomic<bool> sync_nn{true};
+  std::vector<std::string> label_map_;
+  bool sync_nn_ = true;
 };
 }  // namespace depthai_ros_driver
 
