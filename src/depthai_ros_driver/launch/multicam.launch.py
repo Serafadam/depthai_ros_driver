@@ -32,7 +32,7 @@ def launch_setup(context, *args, **kwargs):
         base_to_cam = Node(
             package="tf2_ros",
             executable="static_transform_publisher",
-            name="base_to_left",
+            name=f"base_to_{cam_name}",
             arguments=[
                 "0.0",
                 "0",
