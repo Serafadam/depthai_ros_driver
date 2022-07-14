@@ -449,7 +449,7 @@ Code was being tested on:
 <h2 id="known-issues">Known issues</h2>
 <ul>
 <li>mobilenet &amp; segmentation camera experiences lower frame rate than what is set.</li>
-<li><code>description.launch.py</code> is currently only a dummy file, it should be replaced with a more concise urdf-based launch in the future. For now, you can edit its parameters to get you camera links.</li>
+<li><code>description.launch.py</code> is currently only a dummy file, it should be replaced with a more concise urdf-based launch in the future. For now, you can edit it to get you camera links in a proper way.</li>
 <li>depth parameters are tuned for better accuracy, and depth stream itself might be lagging a little bit</li>
 <li>you should use best USB cable available</li>
 </ul>
@@ -502,8 +502,8 @@ Base parameters:
 * r_rgb_exposure
 * r_rgb_iso
 * r_set_man_whitebalance
-* r_whitebalance
-Stereo parameters:
+* r_whitebalance</p>
+<p>Stereo parameters:
 * i_mono_fps
 * i_mono_resolution
 * i_align_depth
@@ -535,10 +535,10 @@ Stereo parameters:
 <li>Add a script to get all camera ids [ ]</li>
 <li>More configuration options [ ]</li>
 <li>More examples:</li>
-<li>Gaze estimation</li>
-<li>Hand detection</li>
-<li>Tracking</li>
-<li>Separate publishing parameters</li>
+<li>Gaze estimation [ ]</li>
+<li>Hand detection [ ]</li>
+<li>Tracking [ ]</li>
+<li>Separate publishing parameters [ ]</li>
 <li>Refactor (as always)</li>
 </ul>
 
