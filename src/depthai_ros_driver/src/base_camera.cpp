@@ -580,7 +580,7 @@ void BaseCamera::enc_cb(
     }
     auto enc_in = std::dynamic_pointer_cast<dai::ImgFrame>(data);
     video_file_.write(
-      (char *)(enc_in->getData().data()),
+      reinterpret_cast<char *>(enc_in->getData().data()),
       enc_in->getData().size());
   }
 }
@@ -719,4 +719,4 @@ void BaseCamera::declare_common_params()
     this->declare_parameter<std::string>(base_param_names_.camera_ip, "");
 }
 
-} // namespace depthai_ros_driver
+}  // namespace depthai_ros_driver
