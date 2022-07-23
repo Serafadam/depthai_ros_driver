@@ -32,7 +32,7 @@ namespace depthai_ros_driver
 namespace calibration
 {
 sensor_msgs::msg::CameraInfo get_calibration(
-  std::unique_ptr<dai::Device> & device, const std::string & frame_id,
+  std::shared_ptr<dai::Device> device, const std::string & frame_id,
   dai::CameraBoardSocket socket, int width, int height, dai::Point2f top_left_pixel_id,
   dai::Point2f bottom_right_pixel_id)
 {

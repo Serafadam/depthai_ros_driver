@@ -182,7 +182,7 @@ private:
   BaseCameraConfig base_config_;
   BaseCameraParamNames base_param_names_;
   std::shared_ptr<dai::Pipeline> pipeline_;
-  std::unique_ptr<dai::Device> device_;
+  std::shared_ptr<dai::Device> device_;
   std::shared_ptr<dai::node::ColorCamera> camrgb_;
   std::shared_ptr<dai::node::MonoCamera> mono_left_;
   std::shared_ptr<dai::node::MonoCamera> mono_right_;
