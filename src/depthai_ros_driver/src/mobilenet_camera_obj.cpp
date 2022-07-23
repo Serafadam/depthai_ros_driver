@@ -101,9 +101,9 @@ void MobilenetCamera::det_cb(const std::string & name, const std::shared_ptr<dai
       label_name = label_map_[label];
     }
     ros_det.detections[i].results.resize(1);
-    ros_det.detections[i].results[0].hypothesis.class_id = label_name;
-    ros_det.detections[i].results[0].hypothesis.score = detections[i].confidence;
-    ros_det.detections[i].results[0].hypothesis.score = detections[i].confidence;
+    ros_det.detections[i].results[0].id = label_name;
+    ros_det.detections[i].results[0].score = detections[i].confidence;
+    ros_det.detections[i].results[0].score = detections[i].confidence;
     ros_det.detections[i].results[0].pose.pose.position.x =
       detections[i].spatialCoordinates.x / 1000.0;
     ros_det.detections[i].results[0].pose.pose.position.y =

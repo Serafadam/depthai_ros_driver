@@ -1,4 +1,4 @@
-FROM amd64/ros:humble-ros-base
+FROM amd64/ros:foxy-ros-base
 
 # ** [Optional] Uncomment this section to install additional packages. **
 #

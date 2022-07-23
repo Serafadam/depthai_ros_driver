@@ -57,7 +57,6 @@
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/parameter.hpp"
-#include "rclcpp/parameter_event_handler.hpp"
 #include "rclcpp/publisher.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/service.hpp"
