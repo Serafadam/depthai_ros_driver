@@ -7,6 +7,6 @@
 #   examples:
 #     type: git
 #     url: https://github.com/ros2/examples.git
-#     version: galactic
+#     version: foxy
 
 # add `vcs import --skip-existing < src/ros2.repos src` to .github/workflows/ros.yaml when using this file

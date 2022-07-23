@@ -1,4 +1,4 @@
-FROM arm64v8/ros:humble-ros-base
+FROM arm64v8/ros:foxy-ros-base
 
 # ** [Optional] Uncomment this section to install additional packages. **
 #
