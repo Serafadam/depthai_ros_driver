@@ -71,7 +71,8 @@ namespace depthai_ros_driver
 {
 struct BaseCameraConfig
 {
-  int max_q_size;
+  std::string usb_speed;
+  int8_t max_q_size;
   bool enable_rgb;
   bool enable_depth;
   bool enable_lr;
@@ -83,6 +84,7 @@ struct BaseCameraConfig
 };
 struct BaseCameraParamNames
 {
+  const std::string usb_speed = "i_usb_speed";
   const std::string max_q_size = "i_max_q_size";
   const std::string enable_rgb = "i_enable_rgb";
   const std::string enable_depth = "i_enable_depth";
@@ -214,6 +216,14 @@ private:
     "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
     "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
     "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
+    std::unordered_map<std::string, dai::UsbSpeed>
+  usb_speed_map_ = {
+    {"LOW", dai::UsbSpeed::LOW},
+    {"FULL", dai::UsbSpeed::FULL},
+    {"HIGH", dai::UsbSpeed::HIGH},
+    {"SUPER", dai::UsbSpeed::SUPER},
+    {"SUPER_PLUS", dai::UsbSpeed::SUPER_PLUS},
+  };
   std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids_;
 };
 }  // namespace depthai_ros_driver
