@@ -1,2 +1,2 @@
 #!/bin/bash
-git clone --recurse-submodules https://github.com/Serafadam/depthai_ros_driver.git && cd depthai_ros_driver && source /opt/$ROS_DISTRO/setup.sh && ./install_dependencies.sh && ./build_workspace.sh
+git clone --branch $1 --recurse-submodules https://github.com/Serafadam/depthai_ros_driver.git && cd depthai_ros_driver && source /opt/$1/setup.sh && ./install_dependencies.sh && ./build_workspace.sh
