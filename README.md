@@ -60,6 +60,7 @@ All of these parameters can also be overriden programatically, see `mobilenet_ca
 
 List of parameters:
 Base parameters:
+ * i_usb_speed
  * i_max_q_size
  * i_enable_rgb
  * i_enable_depth
