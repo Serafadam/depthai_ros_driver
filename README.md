@@ -28,6 +28,15 @@ Code was being tested on:
 
 ## Installation
 
+### One line setup:
+To just download the whole workspace, install dependencies and build the code, you can run:
+**Note** This assumes that you have already installed specific ROS2 distro.
+```
+wget https://raw.githubusercontent.com/Serafadam/depthai_ros_driver/galactic/get_full_workspace.sh -O - | bash -s galactic
+```
+
+You can also specify which ROS2 distro this will downlad deps for, just change `bash -s galactic` to, for example `bash -s foxy`
+
 When using the Remote Containers plugin, after the container builds, run `setup all` task from VSCode. This automatically pulls the `depthai-core` git submodule and uses rosdep to install all ROS dependencies.
 If you want to install it outside of the container, check out `.vscode/tasks.json` for the exact commands used. You can build both `depthai-core` and `depthai-ros-driver` by using colcon in the base directory.
 ## Running
