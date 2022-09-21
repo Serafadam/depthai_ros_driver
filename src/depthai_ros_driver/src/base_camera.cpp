@@ -700,7 +700,8 @@ void BaseCamera::override_runtime_stereo_config(
 }
 void BaseCamera::declare_common_params()
 {
-  base_config_.usb_speed = this->declare_parameter<std::string>(base_param_names_.usb_speed, "SUPER_PLUS");
+  base_config_.usb_speed =
+    this->declare_parameter<std::string>(base_param_names_.usb_speed, "SUPER_PLUS");
   base_config_.enable_rgb =
     this->declare_parameter<bool>(base_param_names_.enable_rgb, true);
   base_config_.enable_depth =

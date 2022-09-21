@@ -216,7 +216,7 @@ private:
     "background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
     "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
     "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
-    std::unordered_map<std::string, dai::UsbSpeed>
+  std::unordered_map<std::string, dai::UsbSpeed>
   usb_speed_map_ = {
     {"LOW", dai::UsbSpeed::LOW},
     {"FULL", dai::UsbSpeed::FULL},
