@@ -154,10 +154,11 @@ void BaseCamera::start_device()
   rclcpp::Rate r(1.0);
   while (!cam_setup) {
     try {
+      dai::UsbSpeed speed = usb_speed_map_.at(base_config_.usb_speed);
       if (base_config_.camera_mxid.empty() && base_config_.camera_ip.empty()) {
-        device_ = std::make_shared<dai::Device>(*pipeline_, dai::UsbSpeed::SUPER_PLUS);
+        device_ = std::make_shared<dai::Device>(*pipeline_, speed);
       } else {
-        device_ = std::make_shared<dai::Device>(*pipeline_, info, dai::UsbSpeed::SUPER_PLUS);
+        device_ = std::make_shared<dai::Device>(*pipeline_, info, speed);
       }
       cam_setup = true;
     } catch (const std::runtime_error & e) {
@@ -699,6 +700,8 @@ void BaseCamera::override_runtime_stereo_config(
 }
 void BaseCamera::declare_common_params()
 {
+  base_config_.usb_speed =
+    this->declare_parameter<std::string>(base_param_names_.usb_speed, "SUPER_PLUS");
   base_config_.enable_rgb =
     this->declare_parameter<bool>(base_param_names_.enable_rgb, true);
   base_config_.enable_depth =
@@ -712,7 +715,7 @@ void BaseCamera::declare_common_params()
   base_config_.enable_logging =
     this->declare_parameter<bool>(base_param_names_.enable_logging, false);
   base_config_.max_q_size =
-    this->declare_parameter<int>(base_param_names_.max_q_size, 4);
+    this->declare_parameter<int8_t>(base_param_names_.max_q_size, 4);
   base_config_.camera_mxid =
     this->declare_parameter<std::string>(base_param_names_.camera_mxid, "");
   base_config_.camera_ip =
