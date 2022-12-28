@@ -1,5 +1,7 @@
 # An example-based DepthAI ROS2 driver
 
+### You can find newer version of the driver at https://github.com/luxonis/depthai-ros
+
 Work presented here has been developed by Adam Serafin while at Inmotion Labs
 
 Hi! This is a simple (for now) project that enables Luxonis' DepthAI camera to work with ROS2 based systems.
