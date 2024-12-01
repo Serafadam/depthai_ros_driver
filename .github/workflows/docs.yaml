@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.1.0
       - name: Build and push docs
-        uses: athackst/mkdocs-simple-plugin@v2.1.2
+        uses: athackst/mkdocs-simple-plugin@v2.1.3
         with:
           publish_branch: gh-pages-galactic
           edit_uri: edit/galactic
